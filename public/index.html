@@ -71,18 +71,6 @@ tailwind.config = {
   <div class="max-w-3xl mx-auto px-4 pb-2.5 flex gap-2 overflow-x-auto hide-scroll" id="catChips"></div>
 </header>
 
-<!-- Saved drawer (hidden) -->
-<div id="savedDrawer" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-black/60" id="savedBackdrop"></div>
-  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="font-bold">Saved</h2>
-      <button id="closeSaved" class="text-white/60 hover:text-white">✕</button>
-    </div>
-    <div id="savedList" class="space-y-3"></div>
-  </div>
-</div>
-
 <main id="app" class="pt-24">
   <div id="reelsView" class="snap-y hide-scroll"></div>
   <div id="gridView" class="hidden max-w-6xl mx-auto px-4 py-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
@@ -93,10 +81,7 @@ tailwind.config = {
 <!-- Bottom nav -->
 <nav class="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-black/50 border-t border-white/5">
   <div class="max-w-3xl mx-auto px-6 py-2 flex items-center justify-around text-xs">
-    <button class="navbtn flex flex-col items-center gap-0.5 text-white" data-view="reels">🏠<span>Feed</span></button>
-    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSaved">🔖<span>Saved</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSocial">🌐<span>Social</span></button>
-    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openStats">📊<span>Stats</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-red-400" id="openSOS">🆘<span>SOS</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openCommunity">🏘️<span>Community</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openExplore">🧭<span>Explore</span></button>
@@ -109,15 +94,6 @@ tailwind.config = {
   <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
     <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Social &amp; Community</h2><button id="closeSocial" class="text-white/60">✕</button></div>
     <div id="socialList" class="space-y-2"></div>
-  </div>
-</div>
-
-<!-- Stats drawer -->
-<div id="statsDrawer" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-black/60" id="statsBackdrop"></div>
-  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
-    <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Stats</h2><button id="closeStats" class="text-white/60">✕</button></div>
-    <div id="statsBody"></div>
   </div>
 </div>
 
@@ -209,21 +185,14 @@ const $ = id => document.getElementById(id);
 const GRAD = {crime:'grad-crime',politics:'grad-politics',infrastructure:'grad-infrastructure',tech:'grad-tech',sports:'grad-sports',weather:'grad-weather',culture:'grad-culture',health:'grad-health',general:'grad-news'};
 const ICONS = {crime:'🚨',politics:'🗳️',infrastructure:'🏗️',tech:'💻',sports:'🏆',weather:'🌧️',culture:'🎭',health:'🏥',general:'📰'};
 let articles = [];
-let saved = JSON.parse(localStorage.getItem('kz_saved')||'[]');
 let view = 'reels';
 let activeCat = '';
 let activeSource = '';
-
-function saveState(){ localStorage.setItem('kz_saved', JSON.stringify(saved)); }
 
 function favicon(src){ try { const u = new URL(src.includes('http')?src:'https://x'); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`; } catch(e){ return ''; } }
 
 async function loadStats(){
   const s = await (await fetch('/api/stats')).json();
-  const body = $('statsBody');
-  body.innerHTML = `<div class="text-2xl font-bold mb-2">${s.total} articles</div>
-    <div class="text-sm text-white/50 mb-4">${s.sources.length} sources</div>
-    <div class="space-y-1">${s.sources.slice(0,15).map(x=>`<div class="flex justify-between text-sm"><span>${x.source}</span><span class="text-white/50">${x.n}</span></div>`).join('')}</div>`;
   // category chips
   const chips = $('catChips');
   chips.innerHTML = `<button class="chip ${activeCat===''?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
@@ -286,7 +255,6 @@ function renderReels(){
     const card = document.createElement('section');
     card.className = `reel ${GRAD[a.category]||'grad-news'} fade-in`;
     card.dataset.idx = i;
-    const isSaved = saved.includes(a.link);
     const src = a.source||'News';
     const fav = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.toLowerCase().replace(/\s/g,''))}&sz=128`;
     card.innerHTML = `
@@ -311,10 +279,6 @@ function renderReels(){
         </div>
         <!-- right action rail -->
         <div class="w-16 sm:w-20 flex flex-col items-center justify-end gap-5 pb-28 pr-2">
-          <button class="action-btn flex flex-col items-center gap-1" data-save="${i}">
-            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl ${isSaved?'pop':''}">${isSaved?'❤️':'🤍'}</div>
-            <span class="text-[10px] text-white/60">Save</span>
-          </button>
           <button class="action-btn flex flex-col items-center gap-1" data-open="${i}">
             <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">↗</div>
             <span class="text-[10px] text-white/60">Open</span>
@@ -363,12 +327,6 @@ function renderGrid(){
 }
 
 function bindCardActions(){
-  document.querySelectorAll('[data-save]').forEach(b=> b.onclick = ()=>{
-    const i = +b.dataset.save; const a = articles[i];
-    if(saved.includes(a.link)){ saved = saved.filter(x=>x!==a.link); toast('Removed from saved'); }
-    else { saved.push(a.link); toast('Saved ❤️'); }
-    saveState(); render();
-  });
   document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
   document.querySelectorAll('[data-copy]').forEach(b=> b.onclick = async ()=>{
     const a = articles[b.dataset.copy];
@@ -469,12 +427,8 @@ async function openReader(a){
   }catch(e){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(e.message)+'</div>'; }
 }
 $('closeReader').onclick = $('readerBackdrop').onclick = ()=>closeDrawer('readerDrawer');
-$('openSaved').onclick = ()=>{ renderSaved(); openDrawer('savedDrawer'); };
-$('closeSaved').onclick = $('savedBackdrop').onclick = ()=>closeDrawer('savedDrawer');
 $('openSocial').onclick = ()=>{ loadSocial('links'); openDrawer('socialDrawer'); };
 $('closeSocial').onclick = $('socialBackdrop').onclick = ()=>closeDrawer('socialDrawer');
-$('openStats').onclick = ()=>{ openDrawer('statsDrawer'); };
-$('closeStats').onclick = $('statsBackdrop').onclick = ()=>closeDrawer('statsDrawer');
 $('openSOS').onclick = ()=>{ openDrawer('sosDrawer'); };
 $('closeSOS').onclick = $('sosBackdrop').onclick = ()=>closeDrawer('sosDrawer');
 $('openCommunity').onclick = ()=>{ openDrawer('communityDrawer'); loadCommunity(); };
@@ -498,17 +452,6 @@ document.querySelectorAll('.commTab').forEach(b=> b.onclick = ()=>{
   $('commEvents').classList.toggle('hidden', t!=='events');
   $('commJobs').classList.toggle('hidden', t!=='jobs');
 });
-
-function renderSaved(){
-  const list = $('savedList');
-  const items = articles.filter(a=>saved.includes(a.link));
-  if(!items.length){ list.innerHTML='<div class="text-white/40 text-sm">No saved stories yet. Tap 🤍 on a reel.</div>'; return; }
-  list.innerHTML = items.map(a=>`
-    <div class="bg-white/5 border border-white/10 rounded-xl p-3">
-      <div class="text-xs text-white/40 mb-1">${escapeHtml(a.source||'')}</div>
-      <a href="${a.link}" target="_blank" class="font-semibold text-sm hover:text-indigo-300">${escapeHtml(a.title)}</a>
-    </div>`).join('');
-}
 
 async function loadSocial(src){
   const el = $('socialList'); el.innerHTML='<div class="text-white/40 text-sm">Loading…</div>';
@@ -545,8 +488,8 @@ window.addEventListener('keydown', e=>{
 function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} }
 
 const I18N = {
-  en: { subtitle:'Trivandrum · live', search:'Search…', grid:'Grid', reels:'Reels', feed:'Feed', saved:'Saved', social:'Social', stats:'Stats', sos:'SOS', loading:'Loading stories…', empty:'No articles yet. Tap ↻ to refresh.', all:'All' },
-  ml: { subtitle:'തിരുവനന്തപുരം · ലൈവ്', search:'തിരയുക…', grid:'ഗ്രിഡ്', reels:'റീൽസ്', feed:'ഫീഡ്', saved:'സേവ്', social:'സോഷ്യൽ', stats:'സ്ഥിതി', sos:'SOS', loading:'കഥകൾ ലോഡ് ചെയ്യുന്നു…', empty:'ഇതുവരെ ലേഖനങ്ങളില്ല. ↻ അമർത്തുക.', all:'എല്ലാം' }
+  en: { subtitle:'Trivandrum · live', search:'Search…', grid:'Grid', reels:'Reels', social:'Social', sos:'SOS', community:'Community', explore:'Explore', loading:'Loading stories…', empty:'No articles yet. Tap ↻ to refresh.', all:'All' },
+  ml: { subtitle:'തിരുവനന്തപുരം · ലൈവ്', search:'തിരയുക…', grid:'ഗ്രിഡ്', reels:'റീൽസ്', social:'സോഷ്യൽ', sos:'SOS', community:'കമ്മ്യൂണിറ്റി', explore:'എക്സ്പ്ലോർ', loading:'കഥകൾ ലോഡ് ചെയ്യുന്നു…', empty:'ഇതുവരെ ലേഖനങ്ങളില്ല. ↻ അമർത്തുക.', all:'എല്ലാം' }
 };
 let currentLang = localStorage.getItem('kz_lang') || 'en';
 function applyLang(){
@@ -558,7 +501,7 @@ function applyLang(){
   $('langBtn').textContent = currentLang==='en'?'ML':'EN';
   $('loader').textContent = t.loading;
   const emptyEl = $('empty'); if(emptyEl && emptyEl.textContent.includes('No articles')) emptyEl.textContent = t.empty;
-  document.querySelectorAll('.navbtn span').forEach((s,i)=>{ const keys=['feed','saved','social','stats','sos']; if(keys[i]) s.textContent=t[keys[i]]; });
+  document.querySelectorAll('.navbtn span').forEach((s,i)=>{ const keys=['social','sos','community','explore']; if(keys[i]) s.textContent=t[keys[i]]; });
   localStorage.setItem('kz_lang', currentLang);
 }
 $('langBtn').onclick = ()=>{ currentLang = currentLang==='en'?'ml':'en'; applyLang(); };
