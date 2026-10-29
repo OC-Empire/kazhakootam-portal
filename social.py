@@ -6,9 +6,9 @@ def curated_links():
     q = "Kazhakootam Trivandrum"
     return [
         {"platform":"X / Twitter", "title":"Search X for Kazhakootam", "url": f"https://x.com/search?q={q.replace(' ','%20')}&f=live", "icon":"𝕏"},
-        {"platform":"Reddit", "title":"r/Trivandrum", "url":"https://www.reddit.com/r/Trivandrum/search/?q=Kazhakootam&restrict_sr=1&sort=new", "icon":" alien"},
+        {"platform":"Reddit", "title":"r/Trivandrum", "url":"https://www.reddit.com/r/Trivandrum/search/?q=Kazhakootam&restrict_sr=1&sort=new", "icon":"👽"},
         {"platform":"Reddit", "title":"r/Kerala", "url":"https://www.reddit.com/r/Kerala/search/?q=Kazhakootam&restrict_sr=1&sort=new", "icon":"👽"},
-        {"platform":"Facebook", "title":"Facebook search: Kazhakootam", "url": f"https://www.facebook.com/search/top/?q={q.replace(' ','%20')}", "icon":"f"},
+        {"platform":"Facebook", "title":"Facebook pages for Kazhakootam", "url": f"https://www.google.com/search?q=site%3Afacebook.com+{q.replace(' ','+')}", "icon":"f"},
         {"platform":"Instagram", "title":"Instagram #Kazhakootam", "url":"https://www.instagram.com/explore/tags/kazhakootam/", "icon":"📷"},
         {"platform":"YouTube", "title":"YouTube search: Kazhakootam", "url": f"https://www.youtube.com/results?search_query={q.replace(' ','+')}", "icon":"▶"},
         {"platform":"Google", "title":"Google: Kazhakootam news", "url": f"https://www.google.com/search?q={q.replace(' ','+')}&tbm=nws", "icon":"G"},
