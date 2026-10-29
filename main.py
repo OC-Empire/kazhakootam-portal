@@ -52,8 +52,37 @@ def articles(limit: int = 200, source: str = None, category: str = None, q: str 
 
 @app.get("/api/stats")
 def stats():
-    ensure_data()
     return db.stats()
+
+@app.get("/api/weather")
+async def weather():
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get("https://api.open-meteo.com/v1/forecast", params={
+                "latitude": 8.565, "longitude": 76.872,
+                "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
+                "timezone": "Asia/Kolkata"})
+            d = r.json().get("current", {})
+            code = d.get("weather_code", 0)
+            desc = {0:"Clear",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",51:"Drizzle",61:"Rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorm"}.get(code, "Cloudy")
+            return {"temp": d.get("temperature_2m"), "humidity": d.get("relative_humidity_2m"),
+                    "wind": d.get("wind_speed_10m"), "desc": desc, "code": code}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/rss")
+def rss_feed():
+    from fastapi.responses import Response
+    arts = db.list_articles(limit=50)
+    items = ""
+    for a in arts:
+        items += f"""<item><title>{escape_xml(a.get('title',''))}</title><link>{escape_xml(a.get('link',''))}</link><description>{escape_xml(a.get('summary',''))}</description><pubDate>{a.get('published','')}</pubDate><source>{escape_xml(a.get('source',''))}</source></item>"""
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Kazhakootam Portal</title><link>https://kazhakootam-news.vercel.app</link><description>Kazhakootam local news</description>{items}</channel></rss>"""
+    return Response(content=xml, media_type="application/rss+xml")
+
+def escape_xml(s):
+    return (s or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
 
 import social
 @app.get("/api/social/links")

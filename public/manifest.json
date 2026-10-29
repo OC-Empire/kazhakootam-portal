@@ -1,0 +1,12 @@
+{
+  "name": "Kazhakootam Portal",
+  "short_name": "Kazhakootam",
+  "description": "Hyperlocal news and community portal for Kazhakootam, Trivandrum",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05060a",
+  "theme_color": "#6366f1",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
