@@ -309,11 +309,11 @@ function renderGrid(){
       <p class="text-sm text-white/60 line-clamp-3 mb-3">${escapeHtml(a.summary||'')}</p>
       <div class="flex items-center justify-between text-xs">
         <span class="text-white/50">${escapeHtml(a.source||'')}</span>
-        <button class="text-indigo-300 hover:underline" data-open="${i}">Read →</button>
+        <button class="text-indigo-300 hover:underline" data-read="${i}">📖 Read here</button>
       </div>`;
     g.appendChild(card);
   });
-  g.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
+  document.querySelectorAll('#gridView [data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
 }
 
 function bindCardActions(){
