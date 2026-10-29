@@ -1,4 +1,4 @@
-import asyncio, db, scraper
+import asyncio, os, db, scraper
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -69,8 +69,12 @@ async def social_reddit():
 async def social_twitter():
     return await social.twitter_feed()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+
 @app.get("/")
 def index():
-    return FileResponse("public/index.html")
+    return FileResponse(os.path.join(PUBLIC_DIR, "index.html"))
 
-app.mount("/static", StaticFiles(directory="public"), name="static")
+if os.path.isdir(PUBLIC_DIR):
+    app.mount("/static", StaticFiles(directory=PUBLIC_DIR), name="static")
