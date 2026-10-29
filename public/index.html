@@ -53,7 +53,7 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:auto;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;left:50%;margin-bottom:8px}
+  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:auto;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;left:50%;margin-top:8px}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
@@ -412,7 +412,8 @@ function openSharePop(b){
   if(alreadyOpen) return;
   const rect = b.getBoundingClientRect();
   pop.style.left = (rect.left + rect.width/2) + 'px';
-  pop.style.top = (rect.top - 8) + 'px';
+  pop.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  pop.style.top = 'auto';
   pop.style.transform = 'translateX(-50%) scale(.92)';
   pop.classList.add('open');
   requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
