@@ -3,6 +3,10 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" }
   ],
+  "headers": [
+    { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }] }
+  ],
   "crons": [
     { "path": "/api/refresh", "schedule": "0 6 * * *" }
   ]
