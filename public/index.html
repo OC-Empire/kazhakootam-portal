@@ -51,7 +51,7 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:absolute;bottom:calc(100% + 14px);left:50%;z-index:60;width:max-content;max-width:92vw;opacity:0;pointer-events:none;transform:translate(-50%,10px) scale(.95);transition:opacity .28s ease,transform .28s ease}
+  .share-pop{position:fixed;z-index:100;width:max-content;max-width:94vw;opacity:0;pointer-events:none;transform:translate(-50%,10px) scale(.95);transition:opacity .22s ease,transform .22s ease}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
@@ -293,13 +293,13 @@ function renderReels(){
           </div>
         </div>
         <!-- right action rail -->
-        <div class="w-16 sm:w-20 flex flex-col items-center justify-end gap-5 pb-28 pr-2">
-          <button class="action-btn flex flex-col items-center gap-1" data-open="${i}">
+        <div class="w-16 sm:w-20 flex flex-col items-center justify-end gap-4 pb-16 pr-2">
+          <button class="action-btn flex flex-col items-center gap-1" data-open="${i}" aria-label="Open original article">
             <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">↗</div>
             <span class="text-[10px] text-white/60">Open</span>
           </button>
-          <div class="relative w-11 h-11" style="cursor:pointer">
-            <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}">📤</button>
+          <div class="relative w-11 h-11" style="cursor:pointer" role="button" aria-label="Share options" tabindex="0">
+            <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share">📤</button>
             <span class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-white/60 whitespace-nowrap">Share</span>
             <div class="share-pop" id="sharePop${i}">
               <div class="flex flex-col gap-1 p-2">
@@ -383,25 +383,45 @@ function renderGrid(){
       </div>`;
     g.appendChild(card);
   });
-  document.querySelectorAll('#gridView [data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
+  document.querySelectorAll('#gridView [data-read]').forEach(b=> b.onclick = (e)=>{ e.stopPropagation(); openReader(articles[b.dataset.read]); });
   document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
+    e.preventDefault();
     closeSharePops();
     const i = +b.dataset.sharePop;
     const pop = document.getElementById(`sharePopG${i}`);
-    if(pop) pop.classList.toggle('open');
+    if(!pop) return;
+    const rect = b.getBoundingClientRect();
+    pop.style.left = (rect.left + rect.width/2) + 'px';
+    pop.style.top = (rect.top - 6) + 'px';
+    pop.style.transform = 'translateX(-50%) scale(.92)';
+    pop.classList.add('open');
+    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
   });
 }
 
 function bindCardActions(){
-  document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=>{ location.href=articles[b.dataset.open].link; });
-  document.querySelectorAll('[data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
+  document.querySelectorAll('[data-open]').forEach(b=> b.onclick = (e)=>{
+    e.stopPropagation();
+    window.open(articles[b.dataset.open].link,'_blank');
+  });
+  document.querySelectorAll('[data-read]').forEach(b=> b.onclick = (e)=>{
+    e.stopPropagation();
+    openReader(articles[b.dataset.read]);
+  });
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
+    e.preventDefault();
     closeSharePops();
     const i = +b.dataset.sharePop;
     const pop = document.getElementById(`sharePop${i}`);
-    if(pop) pop.classList.toggle('open');
+    if(!pop) return;
+    const rect = b.getBoundingClientRect();
+    pop.style.left = (rect.left + rect.width/2) + 'px';
+    pop.style.top = (rect.top - 6) + 'px';
+    pop.style.transform = 'translateX(-50%) scale(.92)';
+    pop.classList.add('open');
+    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
   });
 }
 window.addEventListener('click', e=>{
@@ -531,14 +551,16 @@ window.addEventListener('keydown', e=>{
   if(e.key==='ArrowUp'||e.key==='k'){ c.scrollBy({top:-window.innerHeight,behavior:'smooth'}); }
 });
 
-// touch swipe nav for mobile reels
+// touch swipe nav for mobile reels (ignore taps on buttons/links/popup)
 let touchStartY=0, touchStartX=0;
 $('reelsView').addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; touchStartX=e.touches[0].clientX; },{passive:true});
 $('reelsView').addEventListener('touchend', e=>{
   if(view!=='reels') return;
+  const target = e.target;
+  if(target.closest('button') || target.closest('a') || target.closest('.share-pop')) return;
   const dy=e.changedTouches[0].clientY-touchStartY;
   const dx=Math.abs(e.changedTouches[0].clientX-touchStartX);
-  if(Math.abs(dy)>60 && dx<Math.abs(dy)){
+  if(Math.abs(dy)>80 && dx<Math.abs(dy)){
     const c=$('reelsView');
     c.scrollBy({top:dy>0?window.innerHeight:-window.innerHeight,behavior:'smooth'});
   }
