@@ -5,7 +5,7 @@ KAZHA_QUERIES = ["Kazhakootam", "Kazhakoottam", "Technopark Trivandrum", "Karyav
 def curated_links():
     q = "Kazhakootam Trivandrum"
     return [
-        {"platform":"X / Twitter", "title":"Search X for Kazhakootam", "url": f"https://x.com/search?q={q.replace(' ','%20')}&f=live", "icon":"𝕏"},
+        {"platform":"X / Twitter", "title":"X / Twitter posts on Kazhakootam", "url": f"https://www.google.com/search?q=site%3Ax.com+{q.replace(' ','+')}", "icon":"𝕏"},
         {"platform":"Reddit", "title":"r/Trivandrum", "url":"https://www.reddit.com/r/Trivandrum/search/?q=Kazhakootam&restrict_sr=1&sort=new", "icon":"👽"},
         {"platform":"Reddit", "title":"r/Kerala", "url":"https://www.reddit.com/r/Kerala/search/?q=Kazhakootam&restrict_sr=1&sort=new", "icon":"👽"},
         {"platform":"Facebook", "title":"Facebook pages for Kazhakootam", "url": f"https://www.google.com/search?q=site%3Afacebook.com+{q.replace(' ','+')}", "icon":"f"},
