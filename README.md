@@ -65,13 +65,24 @@ the curated search links.)
 - Social & community links + optional live feeds
 - Auto-refresh (daily cron on Vercel Hobby)
 
+## Verification
+
+Run the static release gate before committing frontend changes:
+
+```bash
+python3 scripts/verify.py
+```
+
+The gate checks the fixed mobile shell, nested share-menu safety, native-share
+and clipboard fallbacks, and required accessible labels.
+
 ## Deploy
 
 ### Vercel (serverless)
 The project is Vercel-ready:
 - `api/index.py` exposes the FastAPI app as a serverless function.
 - `vercel.json` routes `/api/*` to the function and serves `public/` as static.
-- A cron job refreshes the feed every 30 minutes.
+- The Vercel cron refreshes the feed daily at 06:00 UTC (the Hobby plan limit).
 
 Steps:
 ```bash
