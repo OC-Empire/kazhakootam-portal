@@ -380,9 +380,9 @@ async function openReader(a){
       ${img}
       <div class="text-[11px] text-white/40 mb-3">${escapeHtml(byline)}</div>
       <div class="text-xs text-amber-400 mb-3">⚠️ Reproduced from ${escapeHtml(r.domain)} for reading convenience. Full article & copyright belong to the publisher.</div>
-      ${(r.content||'').split('\\n\\n').map(p=>`<p>${escapeHtml(p)}</p>`).join('')}
+      ${(r.content||'').split('\n\n').map(p=>`<p>${escapeHtml(p)}</p>`).join('')}
       ${r.paragraphs<3?'<div class="text-white/40 text-xs mt-3">Full content may be behind a paywall or JS-rendered. Open the original for the complete article.</div>':''}
-      <div class="mt-4"><a href="${a.link}" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-4 py-2 text-xs font-semibold">Read full article on ${escapeHtml(r.domain)} →</a></div>
+      <div class="mt-4"><a href="${r.url}" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-4 py-2 text-xs font-semibold">Read full article on ${escapeHtml(r.domain)} →</a></div>
     `;
   }catch(e){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(e.message)+'</div>'; }
 }

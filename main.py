@@ -1,4 +1,4 @@
-import asyncio, os, db, scraper
+import asyncio, os, re, db, scraper
 from datetime import datetime, timedelta
 
 # In-memory community data (issues are user-submitted; events/jobs are seed)
@@ -136,71 +136,94 @@ async def weather():
 
 _ARTICLE_CACHE = {}
 
-@app.get("/api/article")
-async def article_reader(url: str):
-    if url in _ARTICLE_CACHE:
-        return _ARTICLE_CACHE[url]
-    import httpx, re
-    from bs4 import BeautifulSoup
+def _decode_google_news(url: str):
+    """Resolve a news.google.com/rss/articles/... link to the real publisher URL
+    via Google's batchexecute endpoint (googlenewsdecoder)."""
+    if not url or "news.google.com" not in url:
+        return url
     try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as c:
-            r = await c.get(url, headers={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
-        r.raise_for_status()
-    except Exception as e:
-        return {"error": str(e), "url": url}
-    soup = BeautifulSoup(r.text, "lxml")
-    # title
-    title = ""
-    og = soup.find("meta", property="og:title")
-    if og and og.get("content"): title = og["content"]
-    elif soup.title: title = soup.title.get_text(strip=True)
-    h1 = soup.find("h1")
-    if not title and h1: title = h1.get_text(strip=True)
-    # image
-    img = ""
-    ogi = soup.find("meta", property="og:image")
-    if ogi and ogi.get("content"): img = ogi["content"]
-    # author
-    author = ""
-    oma = soup.find("meta", attrs={"name":"author"})
-    if oma and oma.get("content"): author = oma["content"]
-    # remove junk
-    for tag in soup(["script","style","nav","footer","header","aside","form","iframe","noscript"]):
-        tag.decompose()
-    # find main container
-    container = soup.find("article")
-    if not container:
-        container = soup.find("main")
-    if not container:
-        # largest div by paragraph count
-        best = None; bestn = 0
-        for d in soup.find_all("div"):
-            ps = d.find_all("p")
-            if len(ps) > bestn:
-                bestn = len(ps); best = d
-        container = best if best else soup.body
-    paras = []
-    if container:
-        for p in container.find_all("p"):
-            txt = p.get_text(" ", strip=True)
-            if len(txt) > 40:
-                paras.append(txt)
-    # dedup
-    seen = set(); uniq = []
-    for p in paras:
-        if p in seen: continue
-        seen.add(p); uniq.append(p)
-    content = "\n\n".join(uniq[:40])
-    domain = ""
-    try:
-        from urllib.parse import urlparse
-        domain = urlparse(url).netloc
+        from googlenewsdecoder import gnewsdecoder
+        r = gnewsdecoder(url)
+        if isinstance(r, tuple):
+            r = r[0]
+        if r and r.get("success"):
+            return r.get("decoded_url") or url
     except Exception:
         pass
-    result = {"title": title, "image": img, "author": author, "content": content,
-              "url": url, "domain": domain, "paragraphs": len(uniq)}
-    _ARTICLE_CACHE[url] = result
-    return result
+    return None
+
+@app.get("/api/article")
+async def article_reader(url: str):
+    try:
+        if url in _ARTICLE_CACHE:
+            return _ARTICLE_CACHE[url]
+        import httpx
+        from bs4 import BeautifulSoup
+        real_url = _decode_google_news(url)
+        if not real_url:
+            return {"error": "Could not resolve article link", "url": url}
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as c:
+            r = await c.get(real_url, headers={"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        # title
+        title = ""
+        og = soup.find("meta", property="og:title")
+        if og and og.get("content"): title = og["content"]
+        if not title and soup.title: title = soup.title.get_text(strip=True)
+        if not title:
+            h1 = soup.find("h1")
+            if h1: title = h1.get_text(strip=True)
+        # image
+        img = ""
+        ogi = soup.find("meta", property="og:image")
+        if ogi and ogi.get("content"): img = ogi["content"]
+        # author
+        author = ""
+        oma = soup.find("meta", attrs={"name":"author"})
+        if oma and oma.get("content"): author = oma["content"]
+        if not author:
+            ogau = soup.find("meta", property="article:author")
+            if ogau and ogau.get("content"): author = ogau["content"]
+        # remove junk
+        for tag in soup(["script","style","nav","footer","header","aside","form","iframe","noscript"]):
+            tag.decompose()
+        # find main container
+        container = soup.find("article")
+        if not container:
+            container = soup.find("main")
+        if not container:
+            # div with most paragraph text (beats sidebar link-farms)
+            best = None; bestn = 0
+            for d in soup.find_all("div"):
+                n = sum(len(p.get_text(strip=True)) for p in d.find_all("p"))
+                if n > bestn:
+                    bestn = n; best = d
+            container = best if best else soup.body
+        paras = []
+        if container:
+            for p in container.find_all("p"):
+                txt = p.get_text(" ", strip=True)
+                if len(txt) > 40:
+                    paras.append(txt)
+        # dedup
+        seen = set(); uniq = []
+        for p in paras:
+            if p in seen: continue
+            seen.add(p); uniq.append(p)
+        content = "\n\n".join(uniq[:40])
+        domain = ""
+        try:
+            from urllib.parse import urlparse
+            domain = urlparse(real_url).netloc
+        except Exception:
+            pass
+        result = {"title": title, "image": img, "author": author, "content": content,
+                  "url": real_url, "domain": domain, "paragraphs": len(uniq)}
+        _ARTICLE_CACHE[url] = result
+        return result
+    except Exception as e:
+        return {"error": str(e), "url": url}
 
 @app.get("/api/rss")
 def rss_feed():
