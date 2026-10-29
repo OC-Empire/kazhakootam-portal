@@ -84,8 +84,8 @@ Set env vars in the Vercel dashboard if you want live social feeds:
 
 Note: on Vercel the filesystem is read-only, so SQLite is replaced by an
 in-memory cache that is repopulated on cold starts / cron refresh. For
-persistent storage, set `DATABASE_URL` (Postgres) — code falls back to
-SQLite/memory otherwise.
+persistent storage, set `DATABASE_URL` (Postgres, e.g. Neon) — code falls
+back to SQLite/memory otherwise. (Supabase/Neon both work; Neon recommended.)
 
 ### Other hosts
 - Render / Railway / Fly.io: use the provided `Dockerfile` or run uvicorn with `$PORT`.
