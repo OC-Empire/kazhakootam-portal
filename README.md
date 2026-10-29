@@ -50,6 +50,20 @@ Social feed endpoints: `/api/social/youtube`, `/api/social/reddit`, `/api/social
 (These are stubs that activate only when keys are present; otherwise they return
 the curated search links.)
 
+## Live
+- Production: https://kazhakootam-news.vercel.app
+- GitHub: https://github.com/OC-Empire/kazhakootam-portal
+
+## Features
+- Reels-style vertical feed + grid view
+- Weather widget (Kazhakootam, via Open-Meteo)
+- Emergency SOS panel with one-tap dialing
+- RSS feed output: /api/rss
+- PWA (installable, offline-capable)
+- Bilingual UI (English / Malayalam)
+- Social & community links + optional live feeds
+- Auto-refresh (daily cron on Vercel Hobby)
+
 ## Deploy
 
 ### Vercel (serverless)
