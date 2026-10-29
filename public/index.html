@@ -53,7 +53,7 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:absolute;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;left:50%;margin-bottom:8px}
+  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:auto;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;left:50%;margin-bottom:8px}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
@@ -104,6 +104,9 @@ tailwind.config = {
   <div id="empty" class="hidden text-center text-white/40 py-32">No articles yet. Tap ↻ to refresh.</div>
   <div id="loader" class="text-center text-white/40 py-32">Loading stories…</div>
 </main>
+
+<!-- Share popups container (outside reels overflow-hidden) -->
+<div id="sharePopsContainer" class="fixed inset-0 z-100 pointer-events-none"></div>
 
 <!-- Bottom nav -->
 <nav class="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-black/50 border-t border-white/5">
@@ -304,28 +307,6 @@ function renderReels(){
           <div class="relative w-11 h-11" style="cursor:pointer" role="button" aria-label="Share options" tabindex="0">
             <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share">📤</button>
             <span class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-white/60 whitespace-nowrap">Share</span>
-            <div class="share-pop" id="sharePop${i}">
-              <div class="flex flex-col gap-1 p-2">
-                ${SHARE_APPS.map(([name,tpl,color,icon])=>{
-                  const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
-                  const url = encodeURIComponent(a.link||'');
-                  const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
-                  const act = name==='Instagram'
-                    ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
-                    : `onclick="closeSharePops()"`;
-                  return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-xs ${act?'':'cursor-pointer'}" ${act}>
-                    <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:${color}22">${icon}</span>
-                    <span class="text-white">${name}</span>
-                    ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
-                  </a>`;
-                }).join('')}
-                <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-xs text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
-                  <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(255,255,255,.1)">🔗</span>
-                  <span>Copy link</span>
-                  <span class="ml-auto text-[10px] text-white/40">↗</span>
-                </a>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -356,31 +337,7 @@ function renderFeed(){
       <p class="text-sm text-white/60 line-clamp-3 mb-5">${escapeHtml(a.summary||'')}</p>
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <button class="glass rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/10 flex-1 sm:flex-none" data-read="${i}">📖 Read here</button>
-        <div class="relative flex-1 sm:flex-none">
-          <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}">📤</button>
-          <div class="share-pop" id="sharePopG${i}">
-            <div class="flex flex-col gap-1 p-2">
-              ${SHARE_APPS.map(([name,tpl,color,icon])=>{
-                const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
-                const url = encodeURIComponent(a.link||'');
-                const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
-                const act = name==='Instagram'
-                  ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
-                  : `onclick="closeSharePops()"`;
-                return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm ${act?'':'cursor-pointer'}" ${act}>
-                  <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:${color}22">${icon}</span>
-                  <span class="text-white">${name}</span>
-                  ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
-                </a>`;
-              }).join('')}
-              <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
-                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(255,255,255,.1)">🔗</span>
-                <span>Copy link</span>
-                <span class="ml-auto text-[10px] text-white/40">↗</span>
-              </a>
-            </div>
-          </div>
-        </div>
+        <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share">📤</button>
       </div>`;
     g.appendChild(card);
   });
@@ -388,13 +345,40 @@ function renderFeed(){
   document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    const i = +b.dataset.sharePop;
-    const pop = document.getElementById(`sharePopG${i}`);
-    if(!pop) return;
-    const alreadyOpen = pop.classList.contains('open');
-    closeSharePops();
-    if(alreadyOpen) return;
-    pop.classList.add('open');
+    openSharePop(b);
+  });
+  renderSharePops();
+}
+
+function renderSharePops(){
+  const container = $('sharePopsContainer');
+  container.innerHTML = '';
+  articles.forEach((a,i)=>{
+    const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
+    const url = encodeURIComponent(a.link||'');
+    const popup = document.createElement('div');
+    popup.className = 'share-pop';
+    popup.id = `sharePop${i}`;
+    popup.innerHTML = `
+      <div class="flex flex-col gap-1 p-2">
+        ${SHARE_APPS.map(([name,tpl,color,icon])=>{
+          const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
+          const act = name==='Instagram'
+            ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
+            : `onclick="closeSharePops()"`;
+          return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm ${act?'':'cursor-pointer'}" ${act}>
+            <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:${color}22">${icon}</span>
+            <span class="text-white">${name}</span>
+            ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
+          </a>`;
+        }).join('')}
+        <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
+          <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(255,255,255,.1)">🔗</span>
+          <span>Copy link</span>
+          <span class="ml-auto text-[10px] text-white/40">↗</span>
+        </a>
+      </div>`;
+    container.appendChild(popup);
   });
 }
 
@@ -416,14 +400,22 @@ function bindCardActions(){
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    const i = +b.dataset.sharePop;
-    const pop = document.getElementById(`sharePop${i}`);
-    if(!pop) return;
-    const alreadyOpen = pop.classList.contains('open');
-    closeSharePops();
-    if(alreadyOpen) return;
-    pop.classList.add('open');
+    openSharePop(b);
   });
+}
+function openSharePop(b){
+  const i = +b.dataset.sharePop;
+  const pop = document.getElementById(`sharePop${i}`);
+  if(!pop) return;
+  const alreadyOpen = pop.classList.contains('open');
+  closeSharePops();
+  if(alreadyOpen) return;
+  const rect = b.getBoundingClientRect();
+  pop.style.left = (rect.left + rect.width/2) + 'px';
+  pop.style.top = (rect.top - 8) + 'px';
+  pop.style.transform = 'translateX(-50%) scale(.92)';
+  pop.classList.add('open');
+  requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
 }
 window.addEventListener('click', e=>{
   if(e.target.closest('.share-pop') || e.target.closest('[data-share-pop]')) return;
