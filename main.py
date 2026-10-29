@@ -21,6 +21,47 @@ _JOBS = [
     {"id":4,"title":"QA Engineer","company":"QBurst","loc":"Technopark Phase 1","type":"Full-time","salary":"₹4-7 LPA","posted":"2026-10-25"},
     {"id":5,"title":"DevOps Intern","company":"Zoho","loc":"Technopark","type":"Internship","salary":"₹15k/mo","posted":"2026-10-29"},
 ]
+
+_PULSE = {
+    "traffic": [
+        {"route":"NH-66 (Kazhakootam stretch)","status":"Moderate","delay":"5 min","color":"amber"},
+        {"route":"Technopark Phase 1 entry","status":"Heavy","delay":"15 min","color":"red"},
+        {"route":"Karyavattom - Kazhakootam","status":"Clear","delay":"0 min","color":"green"},
+        {"route":"Attingal bypass","status":"Clear","delay":"0 min","color":"green"},
+    ],
+    "outages": [
+        {"type":"Power","area":"Kazhakootam ward 3","until":"6:00 PM","note":"Scheduled maintenance"},
+        {"type":"Water","area":"Karyavattom","until":"4:00 PM","note":"Pipeline repair"},
+    ],
+    "buses": [
+        {"route":"Kazhakootam - Trivandrum Central","next":"12 min","freq":"Every 15 min"},
+        {"route":"Technopark - Airport","next":"8 min","freq":"Every 20 min"},
+        {"route":"Kazhakootam - Attingal","next":"22 min","freq":"Every 30 min"},
+    ],
+    "trains": [
+        {"name":"Kazhakootam Express","time":"14:30","platform":"2","status":"On time"},
+        {"name":"Trivandrum Rajdhani","time":"16:10","platform":"1","status":"Delayed 10m"},
+    ],
+}
+
+_DIRECTORY = [
+    {"name":"Technopark Medical Centre","cat":"Health","phone":"0471-2700100","addr":"Technopark Phase 1"},
+    {"name":"Kazhakootam Police Station","cat":"Emergency","phone":"0471-2412100","addr":"Kazhakootam"},
+    {"name":"SBI Kazhakootam","cat":"Bank","phone":"0471-2412345","addr":"NH-66, Kazhakootam"},
+    {"name":"Apollo Pharmacy","cat":"Pharmacy","phone":"0471-2412567","addr":"Technopark gate"},
+    {"name":"Kazhakootam Govt School","cat":"Education","phone":"0471-2412789","addr":"Kazhakootam"},
+    {"name":"Hotel Aiswarya","cat":"Food","phone":"0471-2412901","addr":"NH-66"},
+    {"name":"Lulu Mall (nearby)","cat":"Shopping","phone":"0471-2413000","addr":"Akkulam"},
+    {"name":"KSRTC Depot Kazhakootam","cat":"Transport","phone":"0471-2413100","addr":"Kazhakootam"},
+]
+
+_CLASSIFIEDS = [
+    {"id":1,"title":"2BHK flat for rent near Technopark","type":"Rent","price":"₹18,000/mo","contact":"9876543210","desc":"Furnished, 2 balconies, parking. Available immediately."},
+    {"id":2,"title":"Roommate wanted - Technopark Phase 2","type":"Roommate","price":"₹8,000/mo","contact":"9876543211","desc":"Male preferred. WiFi included."},
+    {"id":3,"title":"Used Honda Activa 2022","type":"Sell","price":"₹65,000","contact":"9876543212","desc":"Single owner, 12k km, excellent condition."},
+    {"id":4,"title":"Tuition: Maths & Physics (Class 10-12)","type":"Service","price":"₹500/hr","contact":"9876543213","desc":"Experienced teacher, Kazhakootam area."},
+    {"id":5,"title":"Laptop repair service","type":"Service","price":"Call for quote","contact":"9876543214","desc":"All brands. Home visit available."},
+]
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -140,6 +181,47 @@ def list_events():
 @app.get("/api/jobs")
 def list_jobs():
     return _JOBS
+
+@app.get("/api/pulse")
+def pulse():
+    return _PULSE
+
+@app.get("/api/directory")
+def directory(q: str = None, cat: str = None):
+    out = _DIRECTORY
+    if cat: out = [d for d in out if d["cat"].lower() == cat.lower()]
+    if q: out = [d for d in out if q.lower() in (d["name"]+d["cat"]).lower()]
+    return out
+
+@app.get("/api/classifieds")
+def classifieds(type: str = None):
+    out = _CLASSIFIEDS
+    if type: out = [c for c in out if c["type"].lower() == type.lower()]
+    return out
+
+@app.get("/api/digest")
+def daily_digest():
+    arts = db.list_articles(limit=8)
+    issues = sorted(_ISSUES, key=lambda x: x["upvotes"], reverse=True)[:3]
+    lines = ["📰 Kazhakootam Portal — Daily Digest", ""]
+    if arts:
+        lines.append("Top stories:")
+        for a in arts[:5]:
+            lines.append(f"• {a.get('title')} ({a.get('source')})")
+        lines.append("")
+    if issues:
+        lines.append("Top community issues:")
+        for i in issues:
+            lines.append(f"• {i['title']} ({i['upvotes']} upvotes)")
+        lines.append("")
+    lines.append("Weather: check the portal for live weather.")
+    lines.append("")
+    lines.append("Read more: https://kazhakootam-news.vercel.app")
+    text = "\n".join(lines)
+    import urllib.parse
+    wa = "https://wa.me/?text=" + urllib.parse.quote(text)
+    tg = "https://t.me/share/url?url=https://kazhakootam-news.vercel.app&text=" + urllib.parse.quote(text)
+    return {"text": text, "whatsapp": wa, "telegram": tg}
 
 def escape_xml(s):
     return (s or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
