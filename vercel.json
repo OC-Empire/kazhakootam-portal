@@ -1,12 +1,6 @@
 {
-  "functions": { "api/index.py": { "maxDuration": 60 } },
+  "functions": { "api/[...path].py": { "maxDuration": 60 } },
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" }
-  ],
-  "headers": [
-    { "source": "/runtime-config.js", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
-  ],
   "crons": [
     { "path": "/api/refresh", "schedule": "0 6 * * *" }
   ]
