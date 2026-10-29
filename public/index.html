@@ -98,6 +98,7 @@ tailwind.config = {
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSocial">🌐<span>Social</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openStats">📊<span>Stats</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-red-400" id="openSOS">🆘<span>SOS</span></button>
+    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openCommunity">🏘️<span>Community</span></button>
   </div>
 </nav>
 
@@ -133,6 +134,31 @@ tailwind.config = {
       <a href="tel:112" class="flex items-center justify-between bg-red-500/10 border border-red-500/30 rounded-xl p-3 hover:bg-red-500/20"><span>National Emergency</span><span class="font-bold">112</span></a>
       <div class="mt-3 text-xs text-white/50">Kazhakootam Police Station: 0471-2412100<br/>Medical College Hospital: 0471-2528100<br/>Technopark Security: 0471-2700000</div>
     </div>
+  </div>
+</div>
+<!-- Community drawer -->
+<div id="communityDrawer" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" id="communityBackdrop"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-[28rem] bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
+    <div class="flex items-center justify-between mb-3"><h2 class="font-bold">🏘️ Community</h2><button id="closeCommunity" class="text-white/60">✕</button></div>
+    <div class="flex gap-2 mb-3">
+      <button class="commTab chip active" data-tab="issues">Issues</button>
+      <button class="commTab chip" data-tab="events">Events</button>
+      <button class="commTab chip" data-tab="jobs">Jobs</button>
+    </div>
+    <div id="commIssues" class="space-y-3">
+      <form id="issueForm" class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+        <input id="issueTitle" placeholder="Report an issue (e.g. pothole, garbage)" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none" required />
+        <textarea id="issueDesc" placeholder="Details (optional)" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none" rows="2"></textarea>
+        <select id="issueCat" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="roads">Roads</option><option value="sanitation">Sanitation</option><option value="lighting">Lighting</option><option value="water">Water</option><option value="other">Other</option>
+        </select>
+        <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 rounded-lg py-2 text-sm font-semibold">Submit Issue</button>
+      </form>
+      <div id="issuesList" class="space-y-2"></div>
+    </div>
+    <div id="commEvents" class="hidden space-y-2"></div>
+    <div id="commJobs" class="hidden space-y-2"></div>
   </div>
 </div>
 <script>
@@ -318,6 +344,16 @@ $('openStats').onclick = ()=>{ openDrawer('statsDrawer'); };
 $('closeStats').onclick = $('statsBackdrop').onclick = ()=>closeDrawer('statsDrawer');
 $('openSOS').onclick = ()=>{ openDrawer('sosDrawer'); };
 $('closeSOS').onclick = $('sosBackdrop').onclick = ()=>closeDrawer('sosDrawer');
+$('openCommunity').onclick = ()=>{ openDrawer('communityDrawer'); loadCommunity(); };
+$('closeCommunity').onclick = $('communityBackdrop').onclick = ()=>closeDrawer('communityDrawer');
+document.querySelectorAll('.commTab').forEach(b=> b.onclick = ()=>{
+  document.querySelectorAll('.commTab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const t = b.dataset.tab;
+  $('commIssues').classList.toggle('hidden', t!=='issues');
+  $('commEvents').classList.toggle('hidden', t!=='events');
+  $('commJobs').classList.toggle('hidden', t!=='jobs');
+});
 
 function renderSaved(){
   const list = $('savedList');
@@ -386,6 +422,51 @@ applyLang();
 // Service worker disabled to avoid stale-cache issues on Vercel.
 
 async function loadWeather(){ try{ const w=await (await fetch('/api/weather')).json(); if(w.temp!=null){ $('weatherChip').classList.remove('hidden'); $('weatherChip').textContent=`🌡️ ${Math.round(w.temp)}°C · ${w.desc}`; } }catch(e){} }
+async function loadCommunity(){
+  // issues
+  const issues = await (await fetch('/api/issues')).json();
+  $('issuesList').innerHTML = issues.map(i=>`
+    <div class="bg-white/5 border border-white/10 rounded-xl p-3">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">${i.category}</span>
+        <span class="text-[10px] text-white/40">${i.created} · ${i.status}</span>
+      </div>
+      <div class="font-semibold text-sm mb-1">${escapeHtml(i.title)}</div>
+      <div class="text-xs text-white/60 mb-2">${escapeHtml(i.desc||'')}</div>
+      <button class="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 hover:bg-white/10" onclick="upvoteIssue(${i.id}, this)">▲ ${i.upvotes}</button>
+    </div>`).join('') || '<div class="text-white/40 text-sm">No issues yet.</div>';
+  // events
+  const events = await (await fetch('/api/events')).json();
+  $('commEvents').innerHTML = events.map(e=>`
+    <div class="bg-white/5 border border-white/10 rounded-xl p-3">
+      <div class="font-semibold text-sm mb-1">${escapeHtml(e.title)}</div>
+      <div class="text-xs text-indigo-300 mb-1">📅 ${e.date} · ${e.time}</div>
+      <div class="text-xs text-white/50 mb-1">📍 ${escapeHtml(e.loc)}</div>
+      <div class="text-xs text-white/60">${escapeHtml(e.desc)}</div>
+    </div>`).join('');
+  // jobs
+  const jobs = await (await fetch('/api/jobs')).json();
+  $('commJobs').innerHTML = jobs.map(j=>`
+    <div class="bg-white/5 border border-white/10 rounded-xl p-3">
+      <div class="font-semibold text-sm mb-1">${escapeHtml(j.title)}</div>
+      <div class="text-xs text-white/50 mb-1">${escapeHtml(j.company)} · ${escapeHtml(j.loc)}</div>
+      <div class="flex gap-2 text-[10px]">
+        <span class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">${j.type}</span>
+        <span class="px-2 py-0.5 rounded-full bg-white/5">${j.salary}</span>
+        <span class="ml-auto text-white/40">${j.posted}</span>
+      </div>
+    </div>`).join('');
+}
+async function upvoteIssue(id, btn){
+  const r = await (await fetch('/api/issues/'+id+'/upvote',{method:'POST'})).json();
+  btn.textContent = '▲ ' + r.upvotes;
+}
+$('issueForm').onsubmit = async (e)=>{
+  e.preventDefault();
+  await fetch('/api/issues',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('issueTitle').value,desc:$('issueDesc').value,category:$('issueCat').value})});
+  $('issueTitle').value=''; $('issueDesc').value='';
+  loadCommunity();
+};
 (async()=>{ await loadStats(); loadWeather(); const s = await (await fetch('/api/stats')).json(); if(!s.total){ await refresh(); } else { await loadArticles(); } })();
 </script>
 </body>

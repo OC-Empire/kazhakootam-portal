@@ -1,4 +1,26 @@
 import asyncio, os, db, scraper
+from datetime import datetime, timedelta
+
+# In-memory community data (issues are user-submitted; events/jobs are seed)
+_ISSUES = [
+    {"id":1,"title":"Pothole near Kazhakootam railway station","desc":"Large pothole causing accidents near the station entrance.","category":"roads","upvotes":12,"status":"open","created":"2026-10-25"},
+    {"id":2,"title":"Garbage pile-up at Technopark Phase 3","desc":"Uncollected waste near the Phase 3 gate.","category":"sanitation","upvotes":8,"status":"open","created":"2026-10-26"},
+    {"id":3,"title":"Streetlight out on NH-66 service road","desc":"Dark stretch near Karyavattom, safety concern at night.","category":"lighting","upvotes":15,"status":"in-progress","created":"2026-10-22"},
+]
+_ISSUE_COUNTER = [4]
+_EVENTS = [
+    {"id":1,"title":"Technopark Job Fair 2026","date":"2026-11-15","time":"10:00 AM","loc":"Technopark Phase 1, Hall A","desc":"50+ companies hiring. Free entry."},
+    {"id":2,"title":"Kazhakootam Temple Festival","date":"2026-12-05","time":"6:00 PM","loc":"Kazhakootam Sree Dharma Sastha Temple","desc":"Annual festival with cultural programs and fireworks."},
+    {"id":3,"title":"Community Beach Cleanup","date":"2026-11-08","time":"7:00 AM","loc":"Shanghumughom Beach","desc":"Join the monthly cleanup drive. Gloves provided."},
+    {"id":4,"title":"Startup Meetup: AI in Kerala","date":"2026-11-22","time":"4:00 PM","loc":"Technopark TBI","desc":"Founders and developers meetup. Free chai."},
+]
+_JOBS = [
+    {"id":1,"title":"Software Engineer (Python)","company":"Infosys","loc":"Technopark Phase 2","type":"Full-time","salary":"₹6-9 LPA","posted":"2026-10-28"},
+    {"id":2,"title":"Frontend Developer (React)","company":"TCS","loc":"Technopark Phase 1","type":"Full-time","salary":"₹5-8 LPA","posted":"2026-10-27"},
+    {"id":3,"title":"Data Analyst","company":"UST","loc":"Technopark Phase 3","type":"Full-time","salary":"₹4-6 LPA","posted":"2026-10-26"},
+    {"id":4,"title":"QA Engineer","company":"QBurst","loc":"Technopark Phase 1","type":"Full-time","salary":"₹4-7 LPA","posted":"2026-10-25"},
+    {"id":5,"title":"DevOps Intern","company":"Zoho","loc":"Technopark","type":"Internship","salary":"₹15k/mo","posted":"2026-10-29"},
+]
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -80,6 +102,44 @@ def rss_feed():
         items += f"""<item><title>{escape_xml(a.get('title',''))}</title><link>{escape_xml(a.get('link',''))}</link><description>{escape_xml(a.get('summary',''))}</description><pubDate>{a.get('published','')}</pubDate><source>{escape_xml(a.get('source',''))}</source></item>"""
     xml = f"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Kazhakootam Portal</title><link>https://kazhakootam-news.vercel.app</link><description>Kazhakootam local news</description>{items}</channel></rss>"""
     return Response(content=xml, media_type="application/rss+xml")
+
+@app.get("/api/issues")
+def list_issues():
+    return sorted(_ISSUES, key=lambda x: x["upvotes"], reverse=True)
+
+@app.post("/api/issues")
+async def create_issue(payload: dict):
+    title = (payload.get("title") or "").strip()
+    if not title:
+        return {"error": "title required"}
+    issue = {
+        "id": _ISSUE_COUNTER[0],
+        "title": title,
+        "desc": (payload.get("desc") or "").strip(),
+        "category": payload.get("category", "general"),
+        "upvotes": 0,
+        "status": "open",
+        "created": datetime.utcnow().strftime("%Y-%m-%d"),
+    }
+    _ISSUE_COUNTER[0] += 1
+    _ISSUES.append(issue)
+    return issue
+
+@app.post("/api/issues/{issue_id}/upvote")
+def upvote_issue(issue_id: int):
+    for i in _ISSUES:
+        if i["id"] == issue_id:
+            i["upvotes"] += 1
+            return i
+    return {"error": "not found"}
+
+@app.get("/api/events")
+def list_events():
+    return _EVENTS
+
+@app.get("/api/jobs")
+def list_jobs():
+    return _JOBS
 
 def escape_xml(s):
     return (s or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
