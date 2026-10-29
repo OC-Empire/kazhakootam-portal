@@ -410,9 +410,9 @@ function openSharePop(b){
   const alreadyOpen = pop.classList.contains('open');
   closeSharePops();
   if(alreadyOpen) return;
-  const rect = b.getBoundingClientRect();
-  pop.style.left = (rect.left + rect.width/2) + 'px';
-  pop.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  // Position popup at bottom-center of screen (always visible)
+  pop.style.left = '50%';
+  pop.style.bottom = '120px'; // above bottom nav
   pop.style.top = 'auto';
   pop.style.transform = 'translateX(-50%) scale(.92)';
   pop.classList.add('open');
