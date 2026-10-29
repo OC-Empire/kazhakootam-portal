@@ -1,4 +1,4 @@
-import feedparser, httpx, datetime, re, html
+import feedparser, httpx, datetime, re, html, calendar
 
 QUERIES = [
     "Kazhakootam",
@@ -66,6 +66,13 @@ def fetch_google_news(query):
                 source = m.group(1).strip()
                 title = title[:m.start()].strip()
         published = e.get("published","") or e.get("updated","")
+        published_ts = 0
+        pp = e.get("published_parsed") or e.get("updated_parsed")
+        if pp:
+            try:
+                published_ts = int(calendar.timegm(pp))
+            except Exception:
+                published_ts = 0
         summary = clean_html(e.get("summary","") or e.get("description",""))
         if not link or not title:
             continue
@@ -74,6 +81,7 @@ def fetch_google_news(query):
             "link": link,
             "source": source or "Google News",
             "published": published,
+            "published_ts": published_ts,
             "summary": summary,
             "category": categorize(title),
         })

@@ -11,17 +11,25 @@ def _sqlite_ok():
     try:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         c = sqlite3.connect(DB_PATH)
-        c.execute("CREATE TABLE IF NOT EXISTS articles (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE, source TEXT, published TEXT, summary TEXT, category TEXT, fetched_at TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS articles (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE, source TEXT, published TEXT, published_ts INTEGER DEFAULT 0, summary TEXT, category TEXT, fetched_at TEXT)")
         c.commit(); c.close()
         return True
     except Exception:
         _USE_MEMORY = True
         return False
 
+def _ensure_column(c, col, decl):
+    cols = [r[1] for r in c.execute(f"PRAGMA table_info(articles)").fetchall()]
+    if col not in cols:
+        try:
+            c.execute(f"ALTER TABLE articles ADD COLUMN {col} {decl}")
+            c.commit()
+        except Exception:
+            pass
+
 def init():
     if not _sqlite_ok():
         return
-    # ensure schema
     c = sqlite3.connect(DB_PATH)
     c.execute("""CREATE TABLE IF NOT EXISTS articles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,10 +37,12 @@ def init():
         link TEXT NOT NULL UNIQUE,
         source TEXT,
         published TEXT,
+        published_ts INTEGER DEFAULT 0,
         summary TEXT,
         category TEXT DEFAULT 'general',
         fetched_at TEXT
     )""")
+    _ensure_column(c, "published_ts", "INTEGER DEFAULT 0")
     c.commit(); c.close()
 
 def _mem_upsert(art):
@@ -41,6 +51,7 @@ def _mem_upsert(art):
             return
     rec = dict(art)
     rec["id"] = len(_MEMORY)+1
+    rec["published_ts"] = art.get("published_ts", 0)
     rec["fetched_at"] = datetime.datetime.utcnow().isoformat()
     _MEMORY.append(rec)
 
@@ -50,10 +61,10 @@ def upsert(art):
         _mem_upsert(art); return
     try:
         c = sqlite3.connect(DB_PATH)
-        c.execute("""INSERT OR IGNORE INTO articles (title,link,source,published,summary,category,fetched_at)
-                    VALUES (?,?,?,?,?,?,?)""",
+        c.execute("""INSERT OR IGNORE INTO articles (title,link,source,published,published_ts,summary,category,fetched_at)
+                    VALUES (?,?,?,?,?,?,?,?)""",
                   (art["title"], art["link"], art.get("source"), art.get("published"),
-                   art.get("summary"), art.get("category","general"), datetime.datetime.utcnow().isoformat()))
+                   art.get("published_ts",0), art.get("summary"), art.get("category","general"), datetime.datetime.utcnow().isoformat()))
         c.commit(); c.close()
     except Exception:
         _USE_MEMORY = True
@@ -73,7 +84,7 @@ def list_articles(limit=200, source=None, category=None, q=None):
             if category: where.append("category = ?"); params.append(category)
             if q: where.append("(title LIKE ? OR summary LIKE ?)"); params += [f"%{q}%", f"%{q}%"]
             if where: sql += " WHERE " + " AND ".join(where)
-            sql += " ORDER BY COALESCE(published,'') DESC, id DESC LIMIT ?"
+            sql += " ORDER BY COALESCE(published_ts,0) DESC, id DESC LIMIT ?"
             params.append(limit)
             rows = [dict(r) for r in c.execute(sql, params).fetchall()]
             c.close()
@@ -88,7 +99,7 @@ def list_articles(limit=200, source=None, category=None, q=None):
             if category and r.get("category") != category: continue
             if q and q.lower() not in ((r.get("title") or "") + " " + (r.get("summary") or "")).lower(): continue
             out.append(r)
-        out.sort(key=lambda r: r.get("published") or "", reverse=True)
+        out.sort(key=lambda r: r.get("published_ts") or 0, reverse=True)
         return out[:limit]
     return rows
 
