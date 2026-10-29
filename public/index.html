@@ -387,10 +387,12 @@ function renderGrid(){
   document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    closeSharePops();
     const i = +b.dataset.sharePop;
     const pop = document.getElementById(`sharePopG${i}`);
     if(!pop) return;
+    const alreadyOpen = pop.classList.contains('open');
+    closeSharePops();
+    if(alreadyOpen) return;
     const rect = b.getBoundingClientRect();
     pop.style.left = (rect.left + rect.width/2) + 'px';
     pop.style.top = (rect.top - 6) + 'px';
@@ -412,10 +414,12 @@ function bindCardActions(){
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    closeSharePops();
     const i = +b.dataset.sharePop;
     const pop = document.getElementById(`sharePop${i}`);
     if(!pop) return;
+    const alreadyOpen = pop.classList.contains('open');
+    closeSharePops();
+    if(alreadyOpen) return;
     const rect = b.getBoundingClientRect();
     pop.style.left = (rect.left + rect.width/2) + 'px';
     pop.style.top = (rect.top - 6) + 'px';
