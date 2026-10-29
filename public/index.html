@@ -53,8 +53,8 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:fixed;z-index:100;width:max-content;max-width:94vw;opacity:0;pointer-events:none;transform:translate(-50%,10px) scale(.95);transition:opacity .22s ease,transform .22s ease}
-  .share-pop.open{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
+  .share-pop{position:absolute;z-index:100;width:max-content;max-width:94vw;opacity:0;pointer-events:none;transform:translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;right:0;margin-bottom:8px}
+  .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
   .toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);padding:10px 16px;border-radius:12px;font-size:13px;z-index:60;animation:fi .3s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -393,18 +393,7 @@ function renderFeed(){
     const alreadyOpen = pop.classList.contains('open');
     closeSharePops();
     if(alreadyOpen) return;
-    const rect = b.getBoundingClientRect();
-    const popW = 260;
-    let left = rect.left + rect.width/2 - popW/2;
-    if(left < 8) left = 8;
-    if(left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
-    let top = rect.top - 8;
-    if(top < 8) top = rect.bottom + 8;
-    pop.style.left = left + 'px';
-    pop.style.top = top + 'px';
-    pop.style.transform = 'translateX(0) scale(.92)';
     pop.classList.add('open');
-    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(0) scale(1)'; });
   });
 }
 
@@ -432,18 +421,7 @@ function bindCardActions(){
     const alreadyOpen = pop.classList.contains('open');
     closeSharePops();
     if(alreadyOpen) return;
-    const rect = b.getBoundingClientRect();
-    const popW = 260; // approx popup width
-    let left = rect.left + rect.width/2 - popW/2;
-    if(left < 8) left = 8;
-    if(left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
-    let top = rect.top - 8;
-    if(top < 8) top = rect.bottom + 8; // show below if no room above
-    pop.style.left = left + 'px';
-    pop.style.top = top + 'px';
-    pop.style.transform = 'translateX(0) scale(.92)';
     pop.classList.add('open');
-    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(0) scale(1)'; });
   });
 }
 window.addEventListener('click', e=>{
