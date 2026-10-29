@@ -58,6 +58,7 @@ the curated search links.)
 - Reels-style vertical feed + grid view
 - Weather widget (Kazhakootam, via Open-Meteo)
 - Emergency SOS panel with one-tap dialing
+- Community drawer: issue reporter (upvote), events calendar, Technopark jobs board
 - RSS feed output: /api/rss
 - PWA (installable, offline-capable)
 - Bilingual UI (English / Malayalam)
