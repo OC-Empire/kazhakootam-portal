@@ -8,14 +8,9 @@ app = FastAPI(title="Kazhakootam News Aggregator")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 def ensure_data():
-    st = db.stats()
-    if st["total"] == 0:
-        try:
-            arts = scraper.fetch_all()
-            for a in arts:
-                db.upsert(a)
-        except Exception as e:
-            print("ensure_data error:", e)
+    db.init()
+    # Do not fetch synchronously here: on serverless (Vercel) this can exceed
+    # the function timeout. Fetching happens via /api/refresh (client-triggered).
 
 @app.on_event("startup")
 async def startup():

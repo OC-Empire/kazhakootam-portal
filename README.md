@@ -1,4 +1,4 @@
-# Kazhakootam News Aggregator
+# Kazhakootam Portal
 
 A small full-stack news aggregator focused on **Kazhakootam, Thiruvananthapuram, Kerala (India)**.
 It continuously scouts the web (via Google News + public RSS) for Kazhakootam / Technopark /
