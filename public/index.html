@@ -53,7 +53,8 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:absolute;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:none;transform:translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;right:0;margin-bottom:8px}
+  .share-pop{position:absolute;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;bottom:100%;left:50%;margin-bottom:8px}
+  .share-pop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
@@ -99,7 +100,7 @@ tailwind.config = {
 
 <main id="app" class="pt-24">
   <div id="reelsView" class="snap-y hide-scroll"></div>
-  <div id="gridView" class="hidden max-w-6xl mx-auto px-4 py-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  <div id="gridView" class="hidden flex flex-col gap-4 max-w-full mx-auto px-4 py-6"></div>
   <div id="empty" class="hidden text-center text-white/40 py-32">No articles yet. Tap ↻ to refresh.</div>
   <div id="loader" class="text-center text-white/40 py-32">Loading stories…</div>
 </main>
