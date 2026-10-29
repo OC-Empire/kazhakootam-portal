@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kazhakootam News · Reels</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode:'class',
+  theme:{ extend:{ fontFamily:{sans:['Inter','system-ui','sans-serif']},
+    colors:{ brand:'#6366f1', accent:'#ec4899' } } }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{height:100%;margin:0;background:#05060a;color:#f5f5f7;font-family:Inter,sans-serif;overflow-x:hidden}
+  .hide-scroll::-webkit-scrollbar{display:none}
+  .hide-scroll{scrollbar-width:none}
+  .snap-y{scroll-snap-type:y mandatory;overflow-y:scroll;height:100vh}
+  .reel{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;position:relative;overflow:hidden}
+  .grad-news{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%)}
+  .grad-crime{background:linear-gradient(135deg,#3b0a0a 0%,#7f1d1d 50%,#1a0505 100%)}
+  .grad-politics{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#0f0e2a 100%)}
+  .grad-infrastructure{background:linear-gradient(135deg,#0c2a2a 0%,#0f4c4c 50%,#041a1a 100%)}
+  .grad-tech{background:linear-gradient(135deg,#0a1a3b 0%,#1e3a8a 50%,#050e22 100%)}
+  .grad-sports{background:linear-gradient(135deg,#0a2a1a 0%,#14532d 50%,#04150d 100%)}
+  .grad-weather{background:linear-gradient(135deg,#1a2a3b 0%,#1e40af 50%,#0a1525 100%)}
+  .grad-culture{background:linear-gradient(135deg,#2a1a3b 0%,#581c87 50%,#150a22 100%)}
+  .grad-health{background:linear-gradient(135deg,#2a0a1a 0%,#831843 50%,#15040d 100%)}
+  .glass{background:rgba(255,255,255,0.06);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1)}
+  .shimmer{background:linear-gradient(90deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.04) 100%);background-size:200% 100%;animation:shim 1.6s infinite}
+  @keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .fade-in{animation:fi .5s ease both}
+  @keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .pop{animation:pop .25s ease}
+  @keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.35;pointer-events:none}
+  .action-btn{transition:transform .15s,background .15s}
+  .action-btn:active{transform:scale(.85)}
+  .chip{transition:all .15s}
+  .chip.active{background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border-color:transparent}
+  .grid-card:hover{transform:translateY(-4px)}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111;border:1px solid #333;padding:10px 16px;border-radius:12px;font-size:13px;z-index:50;animation:fi .3s}
+</style>
+</head>
+<body>
+<!-- Top bar -->
+<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/40 border-b border-white/5">
+  <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm">K</div>
+      <div class="leading-tight">
+        <div class="font-bold text-sm">Kazhakootam News</div>
+        <div class="text-[10px] text-white/50">Trivandrum · live</div>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <input id="search" placeholder="Search…" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400" />
+      <button id="viewToggle" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Grid</button>
+      <button id="refreshBtn" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold">↻</button>
+    </div>
+  </div>
+  <!-- category chips -->
+  <div class="max-w-3xl mx-auto px-4 pb-2.5 flex gap-2 overflow-x-auto hide-scroll" id="catChips"></div>
+</header>
+
+<!-- Saved drawer (hidden) -->
+<div id="savedDrawer" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" id="savedBackdrop"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-bold">Saved</h2>
+      <button id="closeSaved" class="text-white/60 hover:text-white">✕</button>
+    </div>
+    <div id="savedList" class="space-y-3"></div>
+  </div>
+</div>
+
+<main id="app" class="pt-24">
+  <div id="reelsView" class="snap-y hide-scroll"></div>
+  <div id="gridView" class="hidden max-w-6xl mx-auto px-4 py-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  <div id="empty" class="hidden text-center text-white/40 py-32">No articles yet. Tap ↻ to refresh.</div>
+  <div id="loader" class="text-center text-white/40 py-32">Loading stories…</div>
+</main>
+
+<!-- Bottom nav -->
+<nav class="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-black/50 border-t border-white/5">
+  <div class="max-w-3xl mx-auto px-6 py-2 flex items-center justify-around text-xs">
+    <button class="navbtn flex flex-col items-center gap-0.5 text-white" data-view="reels">🏠<span>Feed</span></button>
+    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSaved">🔖<span>Saved</span></button>
+    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSocial">🌐<span>Social</span></button>
+    <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openStats">📊<span>Stats</span></button>
+  </div>
+</nav>
+
+<!-- Social drawer -->
+<div id="socialDrawer" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" id="socialBackdrop"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
+    <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Social &amp; Community</h2><button id="closeSocial" class="text-white/60">✕</button></div>
+    <div id="socialList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- Stats drawer -->
+<div id="statsDrawer" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" id="statsBackdrop"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-full sm:w-96 bg-[#0b0c12] border-l border-white/10 p-4 overflow-y-auto">
+    <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Stats</h2><button id="closeStats" class="text-white/60">✕</button></div>
+    <div id="statsBody"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const GRAD = {crime:'grad-crime',politics:'grad-politics',infrastructure:'grad-infrastructure',tech:'grad-tech',sports:'grad-sports',weather:'grad-weather',culture:'grad-culture',health:'grad-health',general:'grad-news'};
+const ICONS = {crime:'🚨',politics:'🗳️',infrastructure:'🏗️',tech:'💻',sports:'🏆',weather:'🌧️',culture:'🎭',health:'🏥',general:'📰'};
+let articles = [];
+let saved = JSON.parse(localStorage.getItem('kz_saved')||'[]');
+let view = 'reels';
+let activeCat = '';
+let activeSource = '';
+
+function saveState(){ localStorage.setItem('kz_saved', JSON.stringify(saved)); }
+
+function favicon(src){ try { const u = new URL(src.includes('http')?src:'https://x'); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`; } catch(e){ return ''; } }
+
+async function loadStats(){
+  const s = await (await fetch('/api/stats')).json();
+  const body = $('statsBody');
+  body.innerHTML = `<div class="text-2xl font-bold mb-2">${s.total} articles</div>
+    <div class="text-sm text-white/50 mb-4">${s.sources.length} sources</div>
+    <div class="space-y-1">${s.sources.slice(0,15).map(x=>`<div class="flex justify-between text-sm"><span>${x.source}</span><span class="text-white/50">${x.n}</span></div>`).join('')}</div>`;
+  // category chips
+  const chips = $('catChips');
+  chips.innerHTML = `<button class="chip ${activeCat===''?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
+    s.categories.map(c=>`<button class="chip ${activeCat===c.category?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="${c.category}">${ICONS[c.category]||'•'} ${c.category} (${c.n})</button>`).join('');
+  chips.querySelectorAll('.chip').forEach(b=> b.onclick = ()=>{ activeCat=b.dataset.cat; loadArticles(); loadStats(); });
+  // source dropdown not needed; chips enough
+}
+
+async function loadArticles(){
+  const params = new URLSearchParams();
+  if($('search').value) params.set('q',$('search').value);
+  if(activeCat) params.set('category',activeCat);
+  if(activeSource) params.set('source',activeSource);
+  params.set('limit','300');
+  const data = await (await fetch('/api/articles?'+params)).json();
+  articles = data;
+  $('loader').classList.add('hidden');
+  if(!data.length){ $('empty').classList.remove('hidden'); return; }
+  $('empty').classList.add('hidden');
+  render();
+}
+
+function render(){
+  if(view==='reels') renderReels(); else renderGrid();
+}
+
+function renderReels(){
+  const container = $('reelsView');
+  container.innerHTML = '';
+  articles.forEach((a,i)=>{
+    const card = document.createElement('section');
+    card.className = `reel ${GRAD[a.category]||'grad-news'} fade-in`;
+    const isSaved = saved.includes(a.link);
+    const src = a.source||'News';
+    const fav = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.toLowerCase().replace(/\s/g,''))}&sz=128`;
+    card.innerHTML = `
+      <div class="orb w-72 h-72 bg-indigo-500" style="top:-60px;right:-60px"></div>
+      <div class="orb w-60 h-60 bg-pink-500" style="bottom:120px;left:-40px"></div>
+      <div class="absolute inset-0 flex">
+        <!-- left content -->
+        <div class="flex-1 flex flex-col justify-end p-5 sm:p-8 pb-24">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-pink-400 flex items-center justify-center text-xs font-bold">${escapeHtml(src.charAt(0).toUpperCase())}</div>
+            <div>
+              <div class="text-sm font-semibold">${escapeHtml(src)}</div>
+              <div class="text-[11px] text-white/50">${a.published?new Date(a.published).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):''} · ${a.category||'general'}</div>
+            </div>
+            <span class="ml-2 text-lg">${ICONS[a.category]||'📰'}</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold leading-tight mb-3 drop-shadow-lg">${escapeHtml(a.title)}</h2>
+          <p class="text-sm text-white/75 line-clamp-4 mb-4 max-w-xl">${escapeHtml(a.summary||'')}</p>
+          <div class="flex gap-2 flex-wrap">
+            <a href="${a.link}" target="_blank" rel="noopener" class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10">Read full article →</a>
+            <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-share="${i}">Share</button>
+          </div>
+        </div>
+        <!-- right action rail -->
+        <div class="w-16 sm:w-20 flex flex-col items-center justify-end gap-5 pb-28 pr-2">
+          <button class="action-btn flex flex-col items-center gap-1" data-save="${i}">
+            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl ${isSaved?'pop':''}">${isSaved?'❤️':'🤍'}</div>
+            <span class="text-[10px] text-white/60">Save</span>
+          </button>
+          <button class="action-btn flex flex-col items-center gap-1" data-open="${i}">
+            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">↗</div>
+            <span class="text-[10px] text-white/60">Open</span>
+          </button>
+          <button class="action-btn flex flex-col items-center gap-1" data-copy="${i}">
+            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">🔗</div>
+            <span class="text-[10px] text-white/60">Copy</span>
+          </button>
+        </div>
+      </div>
+      <div class="absolute bottom-16 left-5 text-[10px] text-white/30">${i+1} / ${articles.length}</div>
+    `;
+    container.appendChild(card);
+  });
+  bindCardActions();
+}
+
+function srcDomain(src){
+  return src.toLowerCase().replace(/[^a-z0-9]/g,'') + '.com';
+}
+
+function renderGrid(){
+  const g = $('gridView');
+  g.innerHTML = '';
+  articles.forEach((a,i)=>{
+    const card = document.createElement('article');
+    card.className = 'grid-card bg-white/5 border border-white/10 rounded-2xl p-4 transition cursor-pointer';
+    card.innerHTML = `
+      <div class="flex items-center gap-2 mb-2 text-xs">
+        <span class="px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/30 to-pink-500/30">${ICONS[a.category]||'📰'} ${a.category||'general'}</span>
+        <span class="ml-auto text-white/40">${a.published?new Date(a.published).toLocaleDateString():''}</span>
+      </div>
+      <div class="font-semibold mb-2 hover:text-indigo-300">${escapeHtml(a.title)}</div>
+      <p class="text-sm text-white/60 line-clamp-3 mb-3">${escapeHtml(a.summary||'')}</p>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-white/50">${escapeHtml(a.source||'')}</span>
+        <button class="text-indigo-300 hover:underline" data-open="${i}">Read →</button>
+      </div>`;
+    g.appendChild(card);
+  });
+  g.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
+}
+
+function bindCardActions(){
+  document.querySelectorAll('[data-save]').forEach(b=> b.onclick = ()=>{
+    const i = +b.dataset.save; const a = articles[i];
+    if(saved.includes(a.link)){ saved = saved.filter(x=>x!==a.link); toast('Removed from saved'); }
+    else { saved.push(a.link); toast('Saved ❤️'); }
+    saveState(); render();
+  });
+  document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
+  document.querySelectorAll('[data-copy]').forEach(b=> b.onclick = async ()=>{
+    const a = articles[b.dataset.copy];
+    try{ await navigator.clipboard.writeText(a.link); toast('Link copied'); }catch(e){ toast('Copy failed'); }
+  });
+  document.querySelectorAll('[data-share]').forEach(b=> b.onclick = async ()=>{
+    const a = articles[b.dataset.share];
+    if(navigator.share){ try{ await navigator.share({title:a.title,url:a.link}); }catch(e){} }
+    else { try{ await navigator.clipboard.writeText(a.link); toast('Link copied'); }catch(e){} }
+  });
+}
+
+function toast(msg){
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),1800);
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// view toggle
+$('viewToggle').onclick = ()=>{
+  view = view==='reels'?'grid':'reels';
+  $('viewToggle').textContent = view==='reels'?'Grid':'Reels';
+  $('reelsView').classList.toggle('hidden', view!=='reels');
+  $('gridView').classList.toggle('hidden', view!=='grid');
+  render();
+};
+
+// search
+$('search').addEventListener('input', debounce(()=>loadArticles(),400));
+
+// refresh
+$('refreshBtn').onclick = async ()=>{
+  $('refreshBtn').textContent='…';
+  try{ await fetch('/api/refresh',{method:'POST'}); }catch(e){}
+  await loadStats(); await loadArticles();
+  $('refreshBtn').textContent='↻';
+};
+
+// drawers
+function openDrawer(id){ $(id).classList.remove('hidden'); }
+function closeDrawer(id){ $(id).classList.add('hidden'); }
+$('openSaved').onclick = ()=>{ renderSaved(); openDrawer('savedDrawer'); };
+$('closeSaved').onclick = $('savedBackdrop').onclick = ()=>closeDrawer('savedDrawer');
+$('openSocial').onclick = ()=>{ loadSocial('links'); openDrawer('socialDrawer'); };
+$('closeSocial').onclick = $('socialBackdrop').onclick = ()=>closeDrawer('socialDrawer');
+$('openStats').onclick = ()=>{ openDrawer('statsDrawer'); };
+$('closeStats').onclick = $('statsBackdrop').onclick = ()=>closeDrawer('statsDrawer');
+
+function renderSaved(){
+  const list = $('savedList');
+  const items = articles.filter(a=>saved.includes(a.link));
+  if(!items.length){ list.innerHTML='<div class="text-white/40 text-sm">No saved stories yet. Tap 🤍 on a reel.</div>'; return; }
+  list.innerHTML = items.map(a=>`
+    <div class="bg-white/5 border border-white/10 rounded-xl p-3">
+      <div class="text-xs text-white/40 mb-1">${escapeHtml(a.source||'')}</div>
+      <a href="${a.link}" target="_blank" class="font-semibold text-sm hover:text-indigo-300">${escapeHtml(a.title)}</a>
+    </div>`).join('');
+}
+
+async function loadSocial(src){
+  const el = $('socialList'); el.innerHTML='<div class="text-white/40 text-sm">Loading…</div>';
+  let data;
+  if(src==='links'){ data = await (await fetch('/api/social/links')).json(); data={links:data}; }
+  else { data = await (await fetch('/api/social/'+src)).json(); }
+  el.innerHTML='';
+  if(data.links) data.links.forEach(l=>{
+    const a=document.createElement('a'); a.href=l.url; a.target='_blank'; a.rel='noopener';
+    a.className='flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10';
+    a.innerHTML=`<span class="text-xl">${l.icon||'🔗'}</span><div><div class="text-[10px] text-white/40">${l.platform}</div><div class="text-sm font-medium">${escapeHtml(l.title)}</div></div>`;
+    el.appendChild(a);
+  });
+  if(data.items && data.items.length){
+    data.items.forEach(a=>{
+      const d=document.createElement('div'); d.className='bg-white/5 border border-white/10 rounded-xl p-3';
+      d.innerHTML=`<div class="text-xs text-purple-300 mb-1">${escapeHtml(a.source||'social')}</div>
+        <a href="${a.url}" target="_blank" class="font-semibold text-sm hover:text-indigo-300">${escapeHtml(a.title)}</a>
+        ${a.thumbnail?`<img src="${a.thumbnail}" class="mt-2 rounded-lg w-full" loading="lazy"/>`:''}`;
+      el.appendChild(d);
+    });
+  }
+  if(data.reason){ const n=document.createElement('div'); n.className='text-xs text-amber-400'; n.textContent='Live feed disabled: '+data.reason; el.appendChild(n); }
+}
+
+// keyboard nav
+window.addEventListener('keydown', e=>{
+  if(view!=='reels') return;
+  const c = $('reelsView');
+  if(e.key==='ArrowDown'||e.key==='j'){ c.scrollBy({top:window.innerHeight,behavior:'smooth'}); }
+  if(e.key==='ArrowUp'||e.key==='k'){ c.scrollBy({top:-window.innerHeight,behavior:'smooth'}); }
+});
+
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} }
+
+(async()=>{ await loadStats(); await loadArticles(); })();
+</script>
+</body>
+</html>
