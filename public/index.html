@@ -3,16 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Kazhakootam News | Local stories for Trivandrum</title>
-<meta name="description" content="Fresh local news, community updates, weather and useful services for Kazhakootam and Technopark, Trivandrum.">
-<meta name="robots" content="index,follow">
-<link rel="canonical" href="https://kazhakootam-news.vercel.app/">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Kazhakootam News | Local stories for Trivandrum">
-<meta property="og:description" content="Fresh local news and community updates for Kazhakootam and Technopark.">
-<meta property="og:url" content="https://kazhakootam-news.vercel.app/">
-<meta property="og:image" content="https://kazhakootam-news.vercel.app/icon.svg">
-<meta name="twitter:card" content="summary">
+<title>Kazhakootam Portal</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
@@ -29,8 +20,6 @@ tailwind.config = {
 <style>
   :root{--radius:24px;--glass:rgba(255,255,255,0.055);--glass-border:rgba(255,255,255,0.09);--ink:#f8fafc;--muted:#94a3b8;}
   html,body{height:100%;margin:0;background:#02040a;color:#f8fafc;font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
-  :focus-visible{outline:2px solid #a5b4fc;outline-offset:3px}
-  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
   .hide-scroll::-webkit-scrollbar{display:none}
   .hide-scroll{scrollbar-width:none}
   .snap-y{overflow-y:scroll;height:100dvh;-webkit-overflow-scrolling:touch}
@@ -64,9 +53,8 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;opacity:0;pointer-events:auto;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;left:50%;margin-top:8px}
+  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;max-height:calc(100dvh - 150px);overflow-y:auto;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;left:50%;margin-top:8px}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-  .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
   .toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);padding:10px 16px;border-radius:12px;font-size:13px;z-index:60;animation:fi .3s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -83,23 +71,23 @@ tailwind.config = {
 </head>
 <body>
 <!-- Top bar -->
-<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 relative overflow-hidden" role="banner">
+<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 overflow-visible">
   <div class="glow top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 animate-blob"></div>
   <div class="glow top-[-10%] right-[-10%] w-[600px] h-[600px] bg-pink-500/15 animate-blob" style="animation-delay:2s"></div>
   <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3 relative z-10">
     <div class="flex items-center gap-2">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm shadow-lg shadow-indigo-500/30">P</div>
       <div class="leading-tight">
-        <div class="font-bold text-sm tracking-tight">Kazhakootam News</div>
-        <div class="text-[10px] text-white/40">Trivandrum · local, useful, fresh</div>
+        <div class="font-bold text-sm tracking-tight">Kazhakootam Portal</div>
+        <div class="text-[10px] text-white/40">Trivandrum · live</div>
       </div>
     </div>
     <div class="ml-auto flex items-center gap-2">
       <input id="search" placeholder="Search…" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" />
       <span id="weatherChip" class="hidden sm:inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs">🌡️ --°C</span>
-      <button id="viewToggle" aria-label="Switch between feed and reels" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Feed</button>
-      <button id="langBtn" aria-label="Change language" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">EN</button>
-      <button id="refreshBtn" aria-label="Refresh stories" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-pink-500/30">↻</button>
+      <button id="viewToggle" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Grid</button>
+      <button id="langBtn" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">EN</button>
+      <button id="refreshBtn" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-pink-500/30">↻</button>
     </div>
   </div>
   <!-- category chips -->
@@ -109,12 +97,11 @@ tailwind.config = {
   @keyframes blob{0%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-50px) scale(1.1)}66%{transform:translate(-20px,20px) scale(0.9)}100%{transform:translate(0,0) scale(1)}}
 </style>
 
-<main id="app" class="pt-24">
-  <div id="status" class="max-w-3xl mx-auto px-4 pt-3 text-xs text-white/45" role="status" aria-live="polite"></div>
-  <div id="reelsView" class="snap-y hide-scroll" aria-label="News stories"></div>
+<main id="app" class="pt-[135px] pb-14">
+  <div id="reelsView" class="snap-y hide-scroll"></div>
   <div id="gridView" class="hidden flex flex-col gap-4 max-w-full mx-auto px-4 py-6"></div>
-  <div id="empty" class="hidden text-center text-white/40 py-32">No stories match this filter. Try another search.</div>
-  <div id="loader" class="text-center text-white/40 py-32" role="status">Loading stories…</div>
+  <div id="empty" class="hidden text-center text-white/40 py-32">No articles yet. Tap ↻ to refresh.</div>
+  <div id="loader" class="text-center text-white/40 py-32">Loading stories…</div>
 </main>
 
 <!-- Share popups container (outside reels overflow-hidden) -->
@@ -221,22 +208,11 @@ let articles = [];
 let view = 'feed';
 let activeCat = '';
 let activeSource = '';
-let lastUpdated = null;
-
-async function api(path, options){
-  const response = await fetch(path, options);
-  if(!response.ok) throw new Error(`Request failed (${response.status})`);
-  return response.json();
-}
-function setStatus(message, error=false){
-  const el = $('status'); el.textContent = message || '';
-  el.className = `max-w-3xl mx-auto px-4 pt-3 text-xs ${error?'text-rose-300':'text-white/45'}`;
-}
 
 function favicon(src){ try { const u = new URL(src.includes('http')?src:'https://x'); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`; } catch(e){ return ''; } }
 
 async function loadStats(){
-  const s = await api('/api/stats');
+  const s = await (await fetch('/api/stats')).json();
   // category chips
   const chips = $('catChips');
   chips.innerHTML = `<button class="chip ${activeCat===''?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
@@ -246,16 +222,13 @@ async function loadStats(){
 }
 
 async function loadArticles(){
-  $('loader').classList.remove('hidden'); $('empty').classList.add('hidden');
   const params = new URLSearchParams();
   if($('search').value) params.set('q',$('search').value);
   if(activeCat) params.set('category',activeCat);
   if(activeSource) params.set('source',activeSource);
   params.set('limit','300');
-  const data = await api('/api/articles?'+params);
+  const data = await (await fetch('/api/articles?'+params)).json();
   articles = data;
-  lastUpdated = new Date();
-  setStatus(`${data.length} ${data.length===1?'story':'stories'} · updated ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
   $('loader').classList.add('hidden');
   if(!data.length){ $('empty').classList.remove('hidden'); return; }
   $('empty').classList.add('hidden');
@@ -331,7 +304,7 @@ function renderReels(){
             <span class="text-[10px] text-white/60">Open</span>
           </button>
           <div class="relative w-11 h-11" style="cursor:pointer" role="button" aria-label="Share options" tabindex="0">
-            <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share">📤</button>
+            <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
             <span class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-white/60 whitespace-nowrap">Share</span>
           </div>
         </div>
@@ -363,7 +336,7 @@ function renderFeed(){
       <p class="text-sm text-white/60 line-clamp-3 mb-5">${escapeHtml(a.summary||'')}</p>
       <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <button class="glass rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/10 flex-1 sm:flex-none" data-read="${i}">📖 Read here</button>
-        <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share">📤</button>
+        <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
       </div>`;
     g.appendChild(card);
   });
@@ -390,7 +363,7 @@ function renderSharePops(){
         ${SHARE_APPS.map(([name,tpl,color,icon])=>{
           const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
           const act = name==='Instagram'
-            ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
+            ? `onclick="copyShareLink('${(a.link||'').replace(/'/g,"\\'")}', 'Link copied — paste in post/story')"`
             : `onclick="closeSharePops()"`;
           return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm ${act?'':'cursor-pointer'}" ${act}>
             <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:${color}22">${icon}</span>
@@ -398,7 +371,7 @@ function renderSharePops(){
             ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
           </a>`;
         }).join('')}
-        <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
+        <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm text-white/70 cursor-pointer" onclick="event.preventDefault();copyShareLink('${(a.link||'').replace(/'/g,"\\'")}', 'Link copied')">
           <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(255,255,255,.1)">🔗</span>
           <span>Copy link</span>
           <span class="ml-auto text-[10px] text-white/40">↗</span>
@@ -433,6 +406,12 @@ function openSharePop(b){
   const i = +b.dataset.sharePop;
   const pop = document.getElementById(`sharePop${i}`);
   if(!pop) return;
+  const article = articles[i];
+  if(navigator.share && article){
+    navigator.share({title:article.title||'Kazhakootam news', text:article.summary||article.title||'', url:article.link||location.href})
+      .then(()=>closeSharePops()).catch(()=>{});
+    return;
+  }
   const alreadyOpen = pop.classList.contains('open');
   closeSharePops();
   if(alreadyOpen) return;
@@ -449,6 +428,13 @@ window.addEventListener('click', e=>{
   closeSharePops();
 });
 function closeSharePops(){ document.querySelectorAll('.share-pop').forEach(p=>p.classList.remove('open')); }
+async function copyShareLink(url, message='Link copied'){
+  try{
+    if(!navigator.clipboard) throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(url);
+    toast(message); closeSharePops();
+  }catch(e){ toast('Copy failed — long-press the article link to copy'); }
+}
 
 const SHARE_APPS = [
   ["WhatsApp", "https://wa.me/?text={TEXT}%20{URL}", "#25D366", "💬"],
@@ -484,10 +470,10 @@ $('search').addEventListener('input', debounce(()=>loadArticles(),400));
 
 // refresh
 async function refresh(){
-  const button = $('refreshBtn'); button.textContent='…'; button.disabled=true; setStatus('Refreshing local stories…');
-  try{ await api('/api/refresh',{method:'POST'}); await loadStats(); await loadArticles(); }
-  catch(e){ setStatus('Could not refresh stories. Please try again.', true); toast('Refresh failed — check your connection'); }
-  finally { button.textContent='↻'; button.disabled=false; }
+  $('refreshBtn').textContent='…';
+  try{ await fetch('/api/refresh',{method:'POST'}); }catch(e){}
+  await loadStats(); await loadArticles();
+  $('refreshBtn').textContent='↻';
 }
 $('refreshBtn').onclick = refresh;
 
@@ -499,7 +485,7 @@ async function openReader(a){
   $('readerTitle').textContent = a.title || 'Reader';
   $('readerBody').innerHTML = '<div class="text-white/40">Loading article…</div>';
   try{
-    const r = await api('/api/article?url='+encodeURIComponent(a.link));
+    const r = await (await fetch('/api/article?url='+encodeURIComponent(a.link))).json();
     if(r.error){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(r.error)+'</div>'; return; }
     const img = r.image ? `<img src="${r.image}" class="w-full rounded-xl mb-3" loading="lazy" onerror="this.style.display='none'"/>` : '';
     const byline = [r.author, r.domain].filter(Boolean).join(' · ');
@@ -511,7 +497,7 @@ async function openReader(a){
       ${r.paragraphs<3?'<div class="text-white/40 text-xs mt-3">Full content may be behind a paywall or JS-rendered. Open the original for the complete article.</div>':''}
       <div class="mt-4"><a href="${r.url}" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-4 py-2 text-xs font-semibold">Read full article on ${escapeHtml(r.domain)} →</a></div>
     `;
-  }catch(e){ $('readerBody').innerHTML = '<div class="text-red-400">This story could not be loaded. <a class="underline" href="'+escapeHtml(a.link)+'" target="_blank" rel="noopener">Open the original article</a>.</div>'; }
+  }catch(e){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(e.message)+'</div>'; }
 }
 $('closeReader').onclick = $('readerBackdrop').onclick = ()=>closeDrawer('readerDrawer');
 $('openSocial').onclick = ()=>{ loadSocial('links'); openDrawer('socialDrawer'); };
@@ -543,8 +529,8 @@ document.querySelectorAll('.commTab').forEach(b=> b.onclick = ()=>{
 async function loadSocial(src){
   const el = $('socialList'); el.innerHTML='<div class="text-white/40 text-sm">Loading…</div>';
   let data;
-  if(src==='links'){ data = {links:await api('/api/social/links')}; }
-  else { data = await api('/api/social/'+src); }
+  if(src==='links'){ data = await (await fetch('/api/social/links')).json(); data={links:data}; }
+  else { data = await (await fetch('/api/social/'+src)).json(); }
   el.innerHTML='';
   if(data.links) data.links.forEach(l=>{
     const a=document.createElement('a'); a.href=l.url; a.target='_blank'; a.rel='noopener';
@@ -694,7 +680,7 @@ async function loadExplore(){
       <a href="${dg.telegram}" target="_blank" class="flex-1 text-center bg-blue-600 hover:bg-blue-500 rounded-xl py-2 text-sm font-semibold">Share on Telegram</a>
     </div>`;
 }
-(async()=>{ try { await loadStats(); loadWeather(); const s = await api('/api/stats'); if(!s.total){ await refresh(); } else { await loadArticles(); } } catch(e) { $('loader').classList.add('hidden'); setStatus('News is temporarily unavailable. Please try again shortly.', true); $('empty').classList.remove('hidden'); } })();
+(async()=>{ await loadStats(); loadWeather(); const s = await (await fetch('/api/stats')).json(); if(!s.total){ await refresh(); } else { await loadArticles(); } })();
 </script>
 </body>
 </html>
