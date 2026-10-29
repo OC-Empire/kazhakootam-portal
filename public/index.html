@@ -47,6 +47,8 @@ tailwind.config = {
   .chip.active{background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border-color:transparent;box-shadow:0 8px 24px rgba(99,102,241,.35)}
   .grid-card{transition:transform .28s cubic-bezier(.23,1,.32,1),box-shadow .28s,border-color .28s}
   .grid-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px -10px rgba(0,0,0,.5);border-color:rgba(99,102,241,.35)}
+  .feed-card{transition:transform .28s cubic-bezier(.23,1,.32,1),box-shadow .28s,border-color .28s}
+  .feed-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -10px rgba(0,0,0,.5);border-color:rgba(99,102,241,.35)}
   .action-btn{transition:transform .15s,background .15s}
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
@@ -200,7 +202,7 @@ const $ = id => document.getElementById(id);
 const GRAD = {crime:'grad-crime',politics:'grad-politics',infrastructure:'grad-infrastructure',tech:'grad-tech',sports:'grad-sports',weather:'grad-weather',culture:'grad-culture',health:'grad-health',general:'grad-news'};
 const ICONS = {crime:'🚨',politics:'🗳️',infrastructure:'🏗️',tech:'💻',sports:'🏆',weather:'🌧️',culture:'🎭',health:'🏥',general:'📰'};
 let articles = [];
-let view = window.innerWidth > 640 ? 'grid' : 'reels';
+let view = 'feed';
 let activeCat = '';
 let activeSource = '';
 
@@ -260,7 +262,7 @@ async function loadThumbs(){
 }
 
 function render(){
-  if(view==='reels') renderReels(); else renderGrid();
+  if(view==='reels') renderReels(); else renderFeed();
 }
 
 function renderReels(){
@@ -337,47 +339,44 @@ function srcDomain(src){
   return src.toLowerCase().replace(/[^a-z0-9]/g,'') + '.com';
 }
 
-function renderGrid(){
+function renderFeed(){
   const g = $('gridView');
   g.innerHTML = '';
   articles.forEach((a,i)=>{
     const card = document.createElement('article');
-    card.className = 'grid-card group bg-white/5 border border-white/10 rounded-2xl p-4 transition cursor-pointer';
+    card.className = 'feed-card group bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 transition cursor-pointer';
     card.innerHTML = `
-      ${a.image ? `<img src="${a.image}" alt="" class="w-full h-48 object-cover rounded-xl mb-3" loading="lazy" onerror="this.remove()"/><div class='w-full h-48 rounded-xl mb-3 bg-gradient-to-b from-black/40 to-transparent'></div>` : '<div class="w-full h-48 rounded-xl mb-3 bg-gradient-to-br from-indigo-500/30 to-pink-500/30 flex items-center justify-center text-4xl opacity-30">📰</div>'}
+      ${a.image ? `<img src="${a.image}" alt="" class="w-full h-48 md:h-56 object-cover rounded-xl mb-4" loading="lazy" onerror="this.remove()"/>` : '<div class="w-full h-48 md:h-56 rounded-xl mb-4 bg-gradient-to-br from-indigo-500/30 to-pink-500/30 flex items-center justify-center text-4xl opacity-30">📰</div>'}
       <div class="flex items-center gap-2 mb-2 text-xs">
         <span class="px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/30 to-pink-500/30">${ICONS[a.category]||'📰'} ${a.category||'general'}</span>
         <span class="ml-auto text-white/40">${a.published?new Date(a.published).toLocaleDateString():''}</span>
       </div>
-      <div class="font-semibold mb-2 hover:text-indigo-300 group-hover:text-white leading-snug">${escapeHtml(a.title)}</div>
-      <p class="text-sm text-white/60 line-clamp-3 mb-3">${escapeHtml(a.summary||'')}</p>
-      <div class="mt-3 flex items-center justify-between text-xs">
-        <span class="text-white/50">${escapeHtml(a.source||'')}</span>
-        <div class="flex gap-1.5">
-          <button class="glass rounded-full px-2.5 py-1 text-[10px] font-semibold hover:bg-white/10" data-read="${i}">Read here</button>
-          <div class="relative">
-            <button class="share-btn rounded-full flex items-center justify-center text-[11px] p-1.5" data-share-pop="${i}">📤</button>
-            <div class="share-pop" id="sharePopG${i}">
-              <div class="flex flex-col gap-1 p-2">
-                ${SHARE_APPS.map(([name,tpl,color,icon])=>{
-                  const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
-                  const url = encodeURIComponent(a.link||'');
-                  const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
-                  const act = name==='Instagram'
-                    ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
-                    : `onclick="closeSharePops()"`;
-                  return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-3 py-1.5 text-xs ${act?'':'cursor-pointer'}" ${act}>
-                    <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs" style="background:${color}22">${icon}</span>
-                    <span class="text-white">${name}</span>
-                    ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
-                  </a>`;
-                }).join('')}
-                <a href="#" class="share-pop-item flex items-center gap-2.5 px-3 py-1.5 text-xs text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
-                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs" style="background:rgba(255,255,255,.1)">🔗</span>
-                  <span>Copy link</span>
-                  <span class="ml-auto text-[10px] text-white/40">↗</span>
-                </a>
-              </div>
+      <div class="font-semibold text-lg md:text-xl mb-3 hover:text-indigo-300 group-hover:text-white leading-snug">${escapeHtml(a.title)}</div>
+      <p class="text-sm text-white/60 line-clamp-3 mb-5">${escapeHtml(a.summary||'')}</p>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <button class="glass rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/10 flex-1 sm:flex-none" data-read="${i}">📖 Read here</button>
+        <div class="relative flex-1 sm:flex-none">
+          <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}">📤</button>
+          <div class="share-pop" id="sharePopG${i}">
+            <div class="flex flex-col gap-1 p-2">
+              ${SHARE_APPS.map(([name,tpl,color,icon])=>{
+                const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
+                const url = encodeURIComponent(a.link||'');
+                const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
+                const act = name==='Instagram'
+                  ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
+                  : `onclick="closeSharePops()"`;
+                return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm ${act?'':'cursor-pointer'}" ${act}>
+                  <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:${color}22">${icon}</span>
+                  <span class="text-white">${name}</span>
+                  ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
+                </a>`;
+              }).join('')}
+              <a href="#" class="share-pop-item flex items-center gap-2.5 px-4 py-2 text-sm text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(255,255,255,.1)">🔗</span>
+                <span>Copy link</span>
+                <span class="ml-auto text-[10px] text-white/40">↗</span>
+              </a>
             </div>
           </div>
         </div>
@@ -472,12 +471,12 @@ function toast(msg){
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 // view toggle
-$('viewToggle').textContent = view==='reels'?'Grid':'Reels';
+$('viewToggle').textContent = view==='reels'?'Reels':'Feed';
 $('viewToggle').onclick = ()=>{
-  view = view==='reels'?'grid':'reels';
-  $('viewToggle').textContent = view==='reels'?'Grid':'Reels';
+  view = view==='reels'?'feed':'reels';
+  $('viewToggle').textContent = view==='reels'?'Reels':'Feed';
   $('reelsView').classList.toggle('hidden', view!=='reels');
-  $('gridView').classList.toggle('hidden', view!=='grid');
+  $('gridView').classList.toggle('hidden', view!=='feed');
   render();
   if(view==='reels') loadThumbs();
 };
@@ -593,8 +592,8 @@ $('reelsView').addEventListener('touchend', e=>{
 function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} }
 
 const I18N = {
-  en: { subtitle:'Trivandrum · live', search:'Search…', grid:'Grid', reels:'Reels', social:'Social', sos:'SOS', community:'Community', explore:'Explore', loading:'Loading stories…', empty:'No articles yet. Tap ↻ to refresh.', all:'All' },
-  ml: { subtitle:'തിരുവനന്തപുരം · ലൈവ്', search:'തിരയുക…', grid:'ഗ്രിഡ്', reels:'റീൽസ്', social:'സോഷ്യൽ', sos:'SOS', community:'കമ്മ്യൂണിറ്റി', explore:'എക്സ്പ്ലോർ', loading:'കഥകൾ ലോഡ് ചെയ്യുന്നു…', empty:'ഇതുവരെ ലേഖനങ്ങളില്ല. ↻ അമർത്തുക.', all:'എല്ലാം' }
+  en: { subtitle:'Trivandrum · live', search:'Search…', feed:'Feed', reels:'Reels', social:'Social', sos:'SOS', community:'Community', explore:'Explore', loading:'Loading stories…', empty:'No articles yet. Tap ↻ to refresh.', all:'All' },
+  ml: { subtitle:'തിരുവനന്തപുരം · ലൈവ്', search:'തിരയുക…', feed:'ഫീഡ്', reels:'റീൽസ്', social:'സോഷ്യൽ', sos:'SOS', community:'കമ്മ്യൂണിറ്റി', explore:'എക്സ്പ്ലോർ', loading:'കഥകൾ ലോഡ് ചെയ്യുന്നു…', empty:'ഇതുവരെ ലേഖനങ്ങളില്ല. ↻ അമർത്തുക.', all:'എല്ലாம்' }
 };
 let currentLang = localStorage.getItem('kz_lang') || 'en';
 function applyLang(){
@@ -602,7 +601,7 @@ function applyLang(){
   const sub = document.querySelector('header .text-\\[10px\\]');
   if(sub) sub.textContent = t.subtitle;
   $('search').placeholder = t.search;
-  $('viewToggle').textContent = (view==='reels'?t.grid:t.reels);
+  $('viewToggle').textContent = (view==='reels'?t.reels:t.feed);
   $('langBtn').textContent = currentLang==='en'?'ML':'EN';
   $('loader').textContent = t.loading;
   const emptyEl = $('empty'); if(emptyEl && emptyEl.textContent.includes('No articles')) emptyEl.textContent = t.empty;
