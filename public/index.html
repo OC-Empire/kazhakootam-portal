@@ -22,8 +22,8 @@ tailwind.config = {
   html,body{height:100%;margin:0;background:#02040a;color:#f8fafc;font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
   .hide-scroll::-webkit-scrollbar{display:none}
   .hide-scroll{scrollbar-width:none}
-  .snap-y{scroll-snap-type:y mandatory;overflow-y:scroll;height:100vh}
-  .reel{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;position:relative;overflow:hidden}
+  .snap-y{scroll-snap-type:y proximity;overflow-y:scroll;height:100vh}
+  .reel{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;position:relative;overflow:hidden;touch-action:pan-y}
   .glow{position:fixed;border-radius:50%;filter:blur(72px);opacity:.28;pointer-events:none;z-index:0}
   .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none}
   /* category gradients */
@@ -51,11 +51,20 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:absolute;bottom:calc(100% + 16px);right:0;z-index:60;width:max-content;opacity:0;pointer-events:none;transform:translateY(10px) scale(.95);transition:opacity .28s ease,transform .28s ease}
-  .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+  .share-pop{position:absolute;bottom:calc(100% + 14px);left:50%;z-index:60;width:max-content;max-width:92vw;opacity:0;pointer-events:none;transform:translate(-50%,10px) scale(.95);transition:opacity .28s ease,transform .28s ease}
+  .share-pop.open{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
   .toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);padding:10px 16px;border-radius:12px;font-size:13px;z-index:60;animation:fi .3s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  @media (max-width:640px){
+    .action-btn .w-11{width:44px;height:44px}
+    .action-btn span{font-size:11px}
+    .share-btn{font-size:20px}
+    .share-pop{max-width:94vw}
+    .share-pop-item{padding:10px 16px}
+    .reel .w-16{width:56px}
+    button.glass.rounded-full{font-size:13px;padding:8px 14px}
+  }
 </style>
 </head>
 <body>
@@ -385,7 +394,7 @@ function renderGrid(){
 }
 
 function bindCardActions(){
-  document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
+  document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=>{ location.href=articles[b.dataset.open].link; });
   document.querySelectorAll('[data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
@@ -395,7 +404,10 @@ function bindCardActions(){
     if(pop) pop.classList.toggle('open');
   });
 }
-window.addEventListener('click', closeSharePops);
+window.addEventListener('click', e=>{
+  if(e.target.closest('.share-pop') || e.target.closest('[data-share-pop]')) return;
+  closeSharePops();
+});
 function closeSharePops(){ document.querySelectorAll('.share-pop').forEach(p=>p.classList.remove('open')); }
 
 const SHARE_APPS = [
@@ -518,6 +530,19 @@ window.addEventListener('keydown', e=>{
   if(e.key==='ArrowDown'||e.key==='j'){ c.scrollBy({top:window.innerHeight,behavior:'smooth'}); }
   if(e.key==='ArrowUp'||e.key==='k'){ c.scrollBy({top:-window.innerHeight,behavior:'smooth'}); }
 });
+
+// touch swipe nav for mobile reels
+let touchStartY=0, touchStartX=0;
+$('reelsView').addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; touchStartX=e.touches[0].clientX; },{passive:true});
+$('reelsView').addEventListener('touchend', e=>{
+  if(view!=='reels') return;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  const dx=Math.abs(e.changedTouches[0].clientX-touchStartX);
+  if(Math.abs(dy)>60 && dx<Math.abs(dy)){
+    const c=$('reelsView');
+    c.scrollBy({top:dy>0?window.innerHeight:-window.innerHeight,behavior:'smooth'});
+  }
+},{passive:true});
 
 function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} }
 
