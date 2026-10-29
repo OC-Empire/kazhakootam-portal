@@ -22,8 +22,8 @@ tailwind.config = {
   html,body{height:100%;margin:0;background:#02040a;color:#f8fafc;font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
   .hide-scroll::-webkit-scrollbar{display:none}
   .hide-scroll{scrollbar-width:none}
-  .snap-y{scroll-snap-type:y proximity;overflow-y:scroll;height:100vh}
-  .reel{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;position:relative;overflow:hidden;touch-action:pan-y}
+  .snap-y{overflow-y:scroll;height:100dvh;-webkit-overflow-scrolling:touch}
+  .reel{scroll-snap-align:start;height:100dvh;position:relative;overflow:hidden;touch-action:pan-y}
   .glow{position:fixed;border-radius:50%;filter:blur(72px);opacity:.28;pointer-events:none;z-index:0}
   .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none}
   /* category gradients */
@@ -394,18 +394,30 @@ function renderGrid(){
     closeSharePops();
     if(alreadyOpen) return;
     const rect = b.getBoundingClientRect();
-    pop.style.left = (rect.left + rect.width/2) + 'px';
-    pop.style.top = (rect.top - 6) + 'px';
-    pop.style.transform = 'translateX(-50%) scale(.92)';
+    const popW = 260;
+    let left = rect.left + rect.width/2 - popW/2;
+    if(left < 8) left = 8;
+    if(left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+    let top = rect.top - 8;
+    if(top < 8) top = rect.bottom + 8;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.style.transform = 'translateX(0) scale(.92)';
     pop.classList.add('open');
-    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
+    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(0) scale(1)'; });
   });
 }
 
 function bindCardActions(){
   document.querySelectorAll('[data-open]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
-    window.open(articles[b.dataset.open].link,'_blank');
+    const a = document.createElement('a');
+    a.href = articles[b.dataset.open].link;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   });
   document.querySelectorAll('[data-read]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
@@ -421,11 +433,17 @@ function bindCardActions(){
     closeSharePops();
     if(alreadyOpen) return;
     const rect = b.getBoundingClientRect();
-    pop.style.left = (rect.left + rect.width/2) + 'px';
-    pop.style.top = (rect.top - 6) + 'px';
-    pop.style.transform = 'translateX(-50%) scale(.92)';
+    const popW = 260; // approx popup width
+    let left = rect.left + rect.width/2 - popW/2;
+    if(left < 8) left = 8;
+    if(left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+    let top = rect.top - 8;
+    if(top < 8) top = rect.bottom + 8; // show below if no room above
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.style.transform = 'translateX(0) scale(.92)';
     pop.classList.add('open');
-    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
+    requestAnimationFrame(()=>{ pop.style.transform = 'translateX(0) scale(1)'; });
   });
 }
 window.addEventListener('click', e=>{
@@ -437,7 +455,7 @@ function closeSharePops(){ document.querySelectorAll('.share-pop').forEach(p=>p.
 const SHARE_APPS = [
   ["WhatsApp", "https://wa.me/?text={TEXT}%20{URL}", "#25D366", "💬"],
   ["X / Twitter", "https://twitter.com/intent/tweet?text={TEXT}&url={URL}", "#000000", "𝕏"],
-  ["Facebook", "https://www.facebook.com/sharer/sharer.php?u={URL}", "#1877F2", "📘"],
+  ["Facebook", "https://www.google.com/search?q=site%3Afacebook.com+{TEXT}", "#1877F2", "📘"],
   ["Telegram", "https://t.me/share/url?url={URL}&text={TEXT}", "#26A5E4", "✈️"],
   ["LinkedIn", "https://www.linkedin.com/sharing/share-offsite/?url={URL}", "#0A66C2", "💼"],
   ["Reddit", "https://reddit.com/submit?url={URL}&title={TEXT}", "#FF4500", "👽"],
