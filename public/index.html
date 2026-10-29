@@ -284,10 +284,6 @@ function renderReels(){
             <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">↗</div>
             <span class="text-[10px] text-white/60">Open</span>
           </button>
-          <button class="action-btn flex flex-col items-center gap-1" data-copy="${i}">
-            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">🔗</div>
-            <span class="text-[10px] text-white/60">Copy</span>
-          </button>
           <div class="relative w-11 h-11" style="cursor:pointer">
             <button class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}">📤</button>
             <span class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-white/60 whitespace-nowrap">Share</span>
@@ -385,10 +381,6 @@ function renderGrid(){
 
 function bindCardActions(){
   document.querySelectorAll('[data-open]').forEach(b=> b.onclick = ()=> window.open(articles[b.dataset.open].link,'_blank'));
-  document.querySelectorAll('[data-copy]').forEach(b=> b.onclick = async ()=>{
-    const a = articles[b.dataset.copy];
-    try{ await navigator.clipboard.writeText(a.link); toast('Link copied'); }catch(e){ toast('Copy failed'); }
-  });
   document.querySelectorAll('[data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
