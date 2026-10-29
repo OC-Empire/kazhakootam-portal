@@ -179,6 +179,17 @@ tailwind.config = {
     <div id="expDigest" class="hidden space-y-3"></div>
   </div>
 </div>
+<!-- Reader drawer -->
+<div id="readerDrawer" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" id="readerBackdrop"></div>
+  <div class="absolute inset-x-0 bottom-0 top-16 sm:inset-y-0 sm:left-1/2 sm:-translate-x-1/2 sm:w-[40rem] bg-[#0b0c12] border border-white/10 rounded-t-2xl sm:rounded-2xl overflow-y-auto">
+    <div class="sticky top-0 bg-[#0b0c12]/90 backdrop-blur p-4 border-b border-white/10 flex items-center justify-between">
+      <h2 class="font-bold text-sm truncate" id="readerTitle">Reader</h2>
+      <button id="closeReader" class="text-white/60 hover:text-white">✕</button>
+    </div>
+    <div id="readerBody" class="p-5 text-sm leading-relaxed text-white/80 space-y-3"></div>
+  </div>
+</div>
 <script>
 const $ = id => document.getElementById(id);
 const GRAD = {crime:'grad-crime',politics:'grad-politics',infrastructure:'grad-infrastructure',tech:'grad-tech',sports:'grad-sports',weather:'grad-weather',culture:'grad-culture',health:'grad-health',general:'grad-news'};
@@ -251,7 +262,8 @@ function renderReels(){
           <h2 class="text-xl sm:text-2xl font-bold leading-tight mb-3 drop-shadow-lg">${escapeHtml(a.title)}</h2>
           <p class="text-sm text-white/75 line-clamp-4 mb-4 max-w-xl">${escapeHtml(a.summary||'')}</p>
           <div class="flex gap-2 flex-wrap">
-            <a href="${a.link}" target="_blank" rel="noopener" class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10">Read full article →</a>
+            <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-read="${i}">📖 Read here</button>
+            <a href="${a.link}" target="_blank" rel="noopener" class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10">Open original →</a>
             <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-share="${i}">Share</button>
           </div>
         </div>
@@ -316,6 +328,7 @@ function bindCardActions(){
     const a = articles[b.dataset.copy];
     try{ await navigator.clipboard.writeText(a.link); toast('Link copied'); }catch(e){ toast('Copy failed'); }
   });
+  document.querySelectorAll('[data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
   document.querySelectorAll('[data-share]').forEach(b=> b.onclick = async ()=>{
     const a = articles[b.dataset.share];
     if(navigator.share){ try{ await navigator.share({title:a.title,url:a.link}); }catch(e){} }
@@ -354,6 +367,26 @@ $('refreshBtn').onclick = refresh;
 // drawers
 function openDrawer(id){ $(id).classList.remove('hidden'); }
 function closeDrawer(id){ $(id).classList.add('hidden'); }
+async function openReader(a){
+  openDrawer('readerDrawer');
+  $('readerTitle').textContent = a.title || 'Reader';
+  $('readerBody').innerHTML = '<div class="text-white/40">Loading article…</div>';
+  try{
+    const r = await (await fetch('/api/article?url='+encodeURIComponent(a.link))).json();
+    if(r.error){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(r.error)+'</div>'; return; }
+    const img = r.image ? `<img src="${r.image}" class="w-full rounded-xl mb-3" loading="lazy" onerror="this.style.display='none'"/>` : '';
+    const byline = [r.author, r.domain].filter(Boolean).join(' · ');
+    $('readerBody').innerHTML = `
+      ${img}
+      <div class="text-[11px] text-white/40 mb-3">${escapeHtml(byline)}</div>
+      <div class="text-xs text-amber-400 mb-3">⚠️ Reproduced from ${escapeHtml(r.domain)} for reading convenience. Full article & copyright belong to the publisher.</div>
+      ${(r.content||'').split('\\n\\n').map(p=>`<p>${escapeHtml(p)}</p>`).join('')}
+      ${r.paragraphs<3?'<div class="text-white/40 text-xs mt-3">Full content may be behind a paywall or JS-rendered. Open the original for the complete article.</div>':''}
+      <div class="mt-4"><a href="${a.link}" target="_blank" rel="noopener" class="inline-block bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-4 py-2 text-xs font-semibold">Read full article on ${escapeHtml(r.domain)} →</a></div>
+    `;
+  }catch(e){ $('readerBody').innerHTML = '<div class="text-red-400">'+escapeHtml(e.message)+'</div>'; }
+}
+$('closeReader').onclick = $('readerBackdrop').onclick = ()=>closeDrawer('readerDrawer');
 $('openSaved').onclick = ()=>{ renderSaved(); openDrawer('savedDrawer'); };
 $('closeSaved').onclick = $('savedBackdrop').onclick = ()=>closeDrawer('savedDrawer');
 $('openSocial').onclick = ()=>{ loadSocial('links'); openDrawer('socialDrawer'); };
