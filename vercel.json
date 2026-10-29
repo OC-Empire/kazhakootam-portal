@@ -9,6 +9,6 @@
     { "src": "/(.*)", "dest": "/public/$1" }
   ],
   "crons": [
-    { "path": "/api/refresh", "schedule": "*/30 * * * *" }
+    { "path": "/api/refresh", "schedule": "0 6 * * *" }
   ]
 }
