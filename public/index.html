@@ -299,12 +299,13 @@ $('viewToggle').onclick = ()=>{
 $('search').addEventListener('input', debounce(()=>loadArticles(),400));
 
 // refresh
-$('refreshBtn').onclick = async ()=>{
+async function refresh(){
   $('refreshBtn').textContent='…';
   try{ await fetch('/api/refresh',{method:'POST'}); }catch(e){}
   await loadStats(); await loadArticles();
   $('refreshBtn').textContent='↻';
-};
+}
+$('refreshBtn').onclick = refresh;
 
 // drawers
 function openDrawer(id){ $(id).classList.remove('hidden'); }
