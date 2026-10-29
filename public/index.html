@@ -60,26 +60,31 @@ tailwind.config = {
 </head>
 <body>
 <!-- Top bar -->
-<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/40 border-b border-white/5">
-  <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
+<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 relative overflow-hidden">
+  <div class="glow top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 animate-blob"></div>
+  <div class="glow top-[-10%] right-[-10%] w-[600px] h-[600px] bg-pink-500/15 animate-blob" style="animation-delay:2s"></div>
+  <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3 relative z-10">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm">P</div>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm shadow-lg shadow-indigo-500/30">P</div>
       <div class="leading-tight">
-        <div class="font-bold text-sm">Kazhakootam Portal</div>
-        <div class="text-[10px] text-white/50">Trivandrum · live</div>
+        <div class="font-bold text-sm tracking-tight">Kazhakootam Portal</div>
+        <div class="text-[10px] text-white/40">Trivandrum · live</div>
       </div>
     </div>
     <div class="ml-auto flex items-center gap-2">
-      <input id="search" placeholder="Search…" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400" />
+      <input id="search" placeholder="Search…" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" />
       <span id="weatherChip" class="hidden sm:inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs">🌡️ --°C</span>
       <button id="viewToggle" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Grid</button>
       <button id="langBtn" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">EN</button>
-      <button id="refreshBtn" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold">↻</button>
+      <button id="refreshBtn" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-pink-500/30">↻</button>
     </div>
   </div>
   <!-- category chips -->
   <div class="max-w-3xl mx-auto px-4 pb-2.5 flex gap-2 overflow-x-auto hide-scroll" id="catChips"></div>
 </header>
+<style>
+  @keyframes blob{0%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-50px) scale(1.1)}66%{transform:translate(-20px,20px) scale(0.9)}100%{transform:translate(0,0) scale(1)}}
+</style>
 
 <main id="app" class="pt-24">
   <div id="reelsView" class="snap-y hide-scroll"></div>
@@ -327,21 +332,55 @@ function renderGrid(){
   g.innerHTML = '';
   articles.forEach((a,i)=>{
     const card = document.createElement('article');
-    card.className = 'grid-card bg-white/5 border border-white/10 rounded-2xl p-4 transition cursor-pointer';
+    card.className = 'grid-card group bg-white/5 border border-white/10 rounded-2xl p-4 transition cursor-pointer';
     card.innerHTML = `
       <div class="flex items-center gap-2 mb-2 text-xs">
         <span class="px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/30 to-pink-500/30">${ICONS[a.category]||'📰'} ${a.category||'general'}</span>
         <span class="ml-auto text-white/40">${a.published?new Date(a.published).toLocaleDateString():''}</span>
       </div>
-      <div class="font-semibold mb-2 hover:text-indigo-300">${escapeHtml(a.title)}</div>
+      <div class="font-semibold mb-2 hover:text-indigo-300 group-hover:text-white">${escapeHtml(a.title)}</div>
       <p class="text-sm text-white/60 line-clamp-3 mb-3">${escapeHtml(a.summary||'')}</p>
-      <div class="flex items-center justify-between text-xs">
+      <div class="mt-3 flex items-center justify-between text-xs">
         <span class="text-white/50">${escapeHtml(a.source||'')}</span>
-        <button class="text-indigo-300 hover:underline" data-read="${i}">📖 Read here</button>
+        <div class="flex gap-1.5">
+          <button class="glass rounded-full px-2.5 py-1 text-[10px] font-semibold hover:bg-white/10" data-read="${i}">Read here</button>
+          <div class="relative">
+            <button class="share-btn rounded-full flex items-center justify-center text-[11px] p-1.5" data-share-pop="${i}">📤</button>
+            <div class="share-pop" id="sharePopG${i}">
+              <div class="flex flex-col gap-1 p-2">
+                ${SHARE_APPS.map(([name,tpl,color,icon])=>{
+                  const text = encodeURIComponent((a.title||'Kazhakootam news').slice(0,220));
+                  const url = encodeURIComponent(a.link||'');
+                  const href = tpl.replace('{TEXT}',text).replace('{URL}',url);
+                  const act = name==='Instagram'
+                    ? `onclick="navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}').then(()=>{toast('Link copied — paste in post/story'); closeSharePops()})"`
+                    : `onclick="closeSharePops()"`;
+                  return `<a href="${name==='Instagram'?tpl:href}" target="_blank" rel="noopener" class="share-pop-item flex items-center gap-2.5 px-3 py-1.5 text-xs ${act?'':'cursor-pointer'}" ${act}>
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs" style="background:${color}22">${icon}</span>
+                    <span class="text-white">${name}</span>
+                    ${name!=='Instagram'?'<span class="ml-auto text-[10px] text-white/40">↗</span>':''}
+                  </a>`;
+                }).join('')}
+                <a href="#" class="share-pop-item flex items-center gap-2.5 px-3 py-1.5 text-xs text-white/70 cursor-pointer" onclick="closeSharePops();try{navigator.clipboard.writeText('${(a.link||'').replace(/'/g,"\\'")}');toast('Link copied')}catch{}">
+                  <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs" style="background:rgba(255,255,255,.1)">🔗</span>
+                  <span>Copy link</span>
+                  <span class="ml-auto text-[10px] text-white/40">↗</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>`;
     g.appendChild(card);
   });
   document.querySelectorAll('#gridView [data-read]').forEach(b=> b.onclick = ()=> openReader(articles[b.dataset.read]));
+  document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
+    e.stopPropagation();
+    closeSharePops();
+    const i = +b.dataset.sharePop;
+    const pop = document.getElementById(`sharePopG${i}`);
+    if(pop) pop.classList.toggle('open');
+  });
 }
 
 function bindCardActions(){
