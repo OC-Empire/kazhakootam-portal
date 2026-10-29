@@ -11,7 +11,7 @@ def _sqlite_ok():
     try:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         c = sqlite3.connect(DB_PATH)
-        c.execute("CREATE TABLE IF NOT EXISTS articles (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE, source TEXT, published TEXT, published_ts INTEGER DEFAULT 0, summary TEXT, category TEXT, fetched_at TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS articles (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, link TEXT UNIQUE, source TEXT, published TEXT, published_ts INTEGER DEFAULT 0, summary TEXT, category TEXT, image TEXT, fetched_at TEXT)")
         c.commit(); c.close()
         return True
     except Exception:
@@ -40,9 +40,11 @@ def init():
         published_ts INTEGER DEFAULT 0,
         summary TEXT,
         category TEXT DEFAULT 'general',
+        image TEXT,
         fetched_at TEXT
     )""")
     _ensure_column(c, "published_ts", "INTEGER DEFAULT 0")
+    _ensure_column(c, "image", "TEXT")
     c.commit(); c.close()
 
 def _mem_upsert(art):
@@ -61,14 +63,30 @@ def upsert(art):
         _mem_upsert(art); return
     try:
         c = sqlite3.connect(DB_PATH)
-        c.execute("""INSERT OR IGNORE INTO articles (title,link,source,published,published_ts,summary,category,fetched_at)
-                    VALUES (?,?,?,?,?,?,?,?)""",
+        c.execute("""INSERT OR IGNORE INTO articles (title,link,source,published,published_ts,summary,category,image,fetched_at)
+                    VALUES (?,?,?,?,?,?,?,?,?)""",
                   (art["title"], art["link"], art.get("source"), art.get("published"),
-                   art.get("published_ts",0), art.get("summary"), art.get("category","general"), datetime.datetime.utcnow().isoformat()))
+                   art.get("published_ts",0), art.get("summary"), art.get("category","general"),
+                   art.get("image"), datetime.datetime.utcnow().isoformat()))
         c.commit(); c.close()
     except Exception:
         _USE_MEMORY = True
         _mem_upsert(art)
+
+def set_image(link, url):
+    global _USE_MEMORY
+    if _USE_MEMORY:
+        for a in _MEMORY:
+            if a.get("link") == link:
+                a["image"] = url
+                return
+        return
+    try:
+        c = sqlite3.connect(DB_PATH)
+        c.execute("UPDATE articles SET image=? WHERE link=?", (url, link))
+        c.commit(); c.close()
+    except Exception as e:
+        print("set_image error:", e)
 
 def list_articles(limit=200, source=None, category=None, q=None):
     global _USE_MEMORY

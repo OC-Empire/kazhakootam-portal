@@ -230,6 +230,35 @@ async function loadArticles(){
   if(!data.length){ $('empty').classList.remove('hidden'); return; }
   $('empty').classList.add('hidden');
   render();
+  loadThumbs();
+}
+
+let _thumbsLoading = false;
+async function loadThumbs(){
+  if(_thumbsLoading || !articles.length || view!=='reels') return;
+  _thumbsLoading = true;
+  const need = articles.filter(a=>!a.image).map(a=>a.link);
+  for(let i=0;i<need.length;i+=12){
+    try{
+      const r = await (await fetch('/api/thumbs?urls='+encodeURIComponent(need.slice(i,i+12).join(',')))).json();
+      let changed = false;
+      const idxs = [];
+      for(const [link, v] of Object.entries(r)){
+        const idx = articles.findIndex(x=>x.link===link);
+        if(idx < 0) continue;
+        if(v.image){ articles[idx].image = v.image; changed = true; idxs.push(idx); }
+      }
+      if(changed) idxs.forEach(idx=>{
+        const card = document.querySelector(`#reelsView .reel[data-idx="${idx}"]`);
+        if(card && !card.querySelector('.thumb-img')){
+          card.insertAdjacentHTML('afterbegin',
+            `<img class="thumb-img absolute inset-0 w-full h-full object-cover" src="${articles[idx].image}" alt="" loading="lazy" onerror="this.remove()"/>
+             <div class='absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 thumb-shade'></div>`);
+        }
+      });
+    }catch(e){ break; }
+  }
+  _thumbsLoading = false;
 }
 
 function render(){
@@ -242,12 +271,13 @@ function renderReels(){
   articles.forEach((a,i)=>{
     const card = document.createElement('section');
     card.className = `reel ${GRAD[a.category]||'grad-news'} fade-in`;
+    card.dataset.idx = i;
     const isSaved = saved.includes(a.link);
     const src = a.source||'News';
     const fav = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(src.toLowerCase().replace(/\s/g,''))}&sz=128`;
     card.innerHTML = `
-      <div class="orb w-72 h-72 bg-indigo-500" style="top:-60px;right:-60px"></div>
-      <div class="orb w-60 h-60 bg-pink-500" style="bottom:120px;left:-40px"></div>
+      ${a.image ? `<img class="thumb-img absolute inset-0 w-full h-full object-cover" src="${a.image}" alt="" loading="lazy" onerror="this.remove()"/><div class='absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 thumb-shade'></div>` : '<div class="orb w-72 h-72 bg-indigo-500" style="top:-60px;right:-60px"></div>'}
+      ${a.image ? '' : '<div class="orb w-60 h-60 bg-pink-500" style="bottom:120px;left:-40px"></div>'}
       <div class="absolute inset-0 flex">
         <!-- left content -->
         <div class="flex-1 flex flex-col justify-end p-5 sm:p-8 pb-24">
@@ -263,8 +293,6 @@ function renderReels(){
           <p class="text-sm text-white/75 line-clamp-4 mb-4 max-w-xl">${escapeHtml(a.summary||'')}</p>
           <div class="flex gap-2 flex-wrap">
             <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-read="${i}">📖 Read here</button>
-            <a href="${a.link}" target="_blank" rel="noopener" class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10">Open original →</a>
-            <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-share="${i}">Share</button>
           </div>
         </div>
         <!-- right action rail -->
@@ -280,6 +308,10 @@ function renderReels(){
           <button class="action-btn flex flex-col items-center gap-1" data-copy="${i}">
             <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">🔗</div>
             <span class="text-[10px] text-white/60">Copy</span>
+          </button>
+          <button class="action-btn flex flex-col items-center gap-1" data-share="${i}">
+            <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">📤</div>
+            <span class="text-[10px] text-white/60">Share</span>
           </button>
         </div>
       </div>
@@ -350,6 +382,7 @@ $('viewToggle').onclick = ()=>{
   $('reelsView').classList.toggle('hidden', view!=='reels');
   $('gridView').classList.toggle('hidden', view!=='grid');
   render();
+  if(view==='reels') loadThumbs();
 };
 
 // search

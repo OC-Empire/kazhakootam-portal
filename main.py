@@ -135,6 +135,45 @@ async def weather():
         return {"error": str(e)}
 
 _ARTICLE_CACHE = {}
+_THUMB_CACHE = {}
+
+def _fetch_thumb(link: str):
+    """Fetch og:image for one article link (resolves Google News redirects first)."""
+    try:
+        import httpx
+        from bs4 import BeautifulSoup
+        real = _decode_google_news(link) or link
+        with httpx.Client(timeout=8, follow_redirects=True) as c:
+            r = c.get(real, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
+        soup = BeautifulSoup(r.text, "html.parser")
+        og = soup.find("meta", property="og:image")
+        if og and og.get("content"):
+            return og["content"]
+        tw = soup.find("meta", attrs={"name": "twitter:image"})
+        if tw and tw.get("content"):
+            return tw["content"]
+        return ""
+    except Exception:
+        return ""
+
+@app.get("/api/thumbs")
+def thumbnails(urls: str):
+    """Batch og:image lookup for article links. Returns {link: imageUrlOrEmpty}."""
+    from concurrent.futures import ThreadPoolExecutor
+    links = [u for u in (urls or "").split(",") if u][:12]
+    try:
+        from urllib.parse import unquote
+        links = [unquote(u) for u in links]
+    except Exception:
+        pass
+    todo = [u for u in links if u not in _THUMB_CACHE]
+    if todo:
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            for u, img in zip(todo, ex.map(_fetch_thumb, todo)):
+                _THUMB_CACHE[u] = img or ""
+                if img:
+                    db.set_image(u, img)
+    return {u: {"image": _THUMB_CACHE.get(u, "")} for u in links}
 
 def _decode_google_news(url: str):
     """Resolve a news.google.com/rss/articles/... link to the real publisher URL
