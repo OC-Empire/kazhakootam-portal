@@ -382,7 +382,7 @@ function applyLang(){
 }
 $('langBtn').onclick = ()=>{ currentLang = currentLang==='en'?'ml':'en'; applyLang(); };
 applyLang();
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
+if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).then(()=>navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
 
 async function loadWeather(){ try{ const w=await (await fetch('/api/weather')).json(); if(w.temp!=null){ $('weatherChip').classList.remove('hidden'); $('weatherChip').textContent=`🌡️ ${Math.round(w.temp)}°C · ${w.desc}`; } }catch(e){} }
 (async()=>{ await loadStats(); loadWeather(); const s = await (await fetch('/api/stats')).json(); if(!s.total){ await refresh(); } else { await loadArticles(); } })();
