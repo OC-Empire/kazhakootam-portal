@@ -7,7 +7,7 @@ Trivandrum local news and presents a filterable, searchable feed.
 ## What it does
 - Fetches ~350+ articles per refresh from 50+ publishers (The Hindu, Times of India,
   New Indian Express, Onmanorama, Mathrubhumi, Kerala Kaumudi, Asianet, NDTV, ...).
-- Auto-refreshes every 15 minutes (background task) + manual "Refresh" button.
+- Refreshes on demand with the "Refresh" button and once daily through Vercel Cron.
 - Filter by source, category (crime, politics, infrastructure, tech, ...), full-text search.
 - Deduplicates by article URL in SQLite.
 - Responsive dark UI.
@@ -93,10 +93,12 @@ vercel        # follow prompts
 Set env vars in the Vercel dashboard if you want live social feeds:
 `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `TWITTER_BEARER_TOKEN`.
 
-Note: on Vercel the filesystem is read-only, so SQLite is replaced by an
-in-memory cache that is repopulated on cold starts / cron refresh. For
-persistent storage, set `DATABASE_URL` (Postgres, e.g. Neon) — code falls
-back to SQLite/memory otherwise. (Supabase/Neon both work; Neon recommended.)
+Note: on Vercel the filesystem is read-only, so SQLite falls back to a
+per-serverless-instance in-memory cache that is repopulated on cold starts and
+refresh requests. `DATABASE_URL` is not currently consumed by the code; durable
+cross-instance storage requires a database adapter and provisioned database.
+The Vercel cron calls `/api/refresh` with GET; when `CRON_SECRET` is configured,
+the endpoint validates Vercel's `Authorization: Bearer …` header.
 
 ### Other hosts
 - Render / Railway / Fly.io: use the provided `Dockerfile` or run uvicorn with `$PORT`.

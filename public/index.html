@@ -27,15 +27,28 @@ tailwind.config = {
 <meta name="theme-color" content="#6366f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-  :root{--radius:24px;--glass:rgba(255,255,255,0.055);--glass-border:rgba(255,255,255,0.09);--ink:#f8fafc;--muted:#94a3b8;}
+  :root{--radius:24px;--glass:rgba(255,255,255,0.055);--glass-border:rgba(255,255,255,0.09);--ink:#f8fafc;--muted:#94a3b8;--site-header-height:135px;}
   html,body{height:100%;margin:0;background:#02040a;color:#f8fafc;font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
+  #app{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+  #reelsView{height:calc(100dvh - var(--site-header-height,135px) - 5.5rem - env(safe-area-inset-bottom))}
+  #gridView{width:100%;max-width:48rem}
+  #siteHeader{position:sticky;top:0;z-index:40;padding-top:env(safe-area-inset-top)}
+  #bottomNav{padding-bottom:env(safe-area-inset-bottom)}
+  #bottomNav>div{min-height:44px}
+  .navbtn{min-width:44px;min-height:44px;justify-content:center}
+  .header-control{min-height:44px}
+  @media(max-width:640px){
+    #headerTop{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+    #headerControls{margin-left:0;width:100%}
+    #search{flex:1;min-width:0;width:auto}
+  }
   :focus-visible{outline:2px solid #a5b4fc;outline-offset:3px}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
   .hide-scroll::-webkit-scrollbar{display:none}
   .hide-scroll{scrollbar-width:none}
-  .snap-y{overflow-y:scroll;height:100dvh;-webkit-overflow-scrolling:touch}
-  .reel{scroll-snap-align:start;height:100dvh;position:relative;overflow:hidden;touch-action:pan-y}
-  .glow{position:fixed;border-radius:50%;filter:blur(72px);opacity:.28;pointer-events:none;z-index:0}
+  .snap-y{overflow-y:auto;height:100dvh;-webkit-overflow-scrolling:touch}
+  .reel{scroll-snap-align:start;height:100%;min-height:100%;position:relative;overflow:hidden;touch-action:pan-y}
+  .glow{position:absolute;border-radius:50%;filter:blur(72px);opacity:.28;pointer-events:none;z-index:0}
   .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none}
   /* category gradients */
   .grad-news{background:linear-gradient(135deg,#0b1026 0%,#131a2f 55%,#0b1026 100%)}
@@ -83,24 +96,24 @@ tailwind.config = {
 <body>
 <!-- Top bar -->
 
-<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 relative overflow-hidden" role="banner">
+<header id="siteHeader" class="sticky top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 overflow-hidden" role="banner">
 
   <div class="glow top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 animate-blob"></div>
   <div class="glow top-[-10%] right-[-10%] w-[600px] h-[600px] bg-pink-500/15 animate-blob" style="animation-delay:2s"></div>
-  <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3 relative z-10">
+  <div id="headerTop" class="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3 relative z-10">
     <div class="flex items-center gap-2">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm shadow-lg shadow-indigo-500/30">P</div>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-sm shadow-lg shadow-indigo-500/30">K</div>
       <div class="leading-tight">
         <div class="font-bold text-sm tracking-tight">Kazhakootam News</div>
         <div class="text-[10px] text-white/40">Trivandrum · local, useful, fresh</div>
       </div>
     </div>
-    <div class="ml-auto flex items-center gap-2">
-      <input id="search" placeholder="Search…" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" />
+    <div id="headerControls" class="ml-auto flex items-center gap-2">
+      <input id="search" placeholder="Search…" aria-label="Search local stories" class="header-control bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs w-32 sm:w-44 focus:w-52 transition-all outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" />
       <span id="weatherChip" class="hidden sm:inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs">🌡️ --°C</span>
-      <button id="viewToggle" aria-label="Switch between feed and reels" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Feed</button>
-      <button id="langBtn" aria-label="Change language" class="bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">EN</button>
-      <button id="refreshBtn" aria-label="Refresh stories" class="bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-pink-500/30">↻</button>
+      <button id="viewToggle" aria-label="Switch between feed and reels" class="header-control bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Feed</button>
+      <button id="langBtn" aria-label="Change language" class="header-control bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs hover:bg-white/10">EN</button>
+      <button id="refreshBtn" aria-label="Refresh stories" class="header-control bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-pink-500/30">↻</button>
     </div>
   </div>
   <!-- category chips -->
@@ -111,11 +124,11 @@ tailwind.config = {
 </style>
 
 
-<main id="app" class="pt-[135px] pb-14">
+<main id="app">
   <div id="status" class="max-w-3xl mx-auto px-4 pt-3 text-xs text-white/45" role="status" aria-live="polite"></div>
   <div id="reelsView" class="snap-y hide-scroll" aria-label="News stories"></div>
 
-  <div id="gridView" class="hidden flex flex-col gap-4 max-w-full mx-auto px-4 py-6"></div>
+  <div id="gridView" class="hidden flex flex-col gap-4 max-w-3xl mx-auto w-full px-4 py-6"></div>
   <div id="empty" class="hidden text-center text-white/40 py-32">No stories match this filter. Try another search.</div>
   <div id="loader" class="text-center text-white/40 py-32" role="status">Loading stories…</div>
 </main>
@@ -124,7 +137,7 @@ tailwind.config = {
 <div id="sharePopsContainer" class="fixed inset-0 z-100 pointer-events-none"></div>
 
 <!-- Bottom nav -->
-<nav class="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-black/50 border-t border-white/5">
+<nav id="bottomNav" class="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-black/50 border-t border-white/5">
   <div class="max-w-3xl mx-auto px-6 py-2 flex items-center justify-around text-xs">
     <button class="navbtn flex flex-col items-center gap-0.5 text-white/50" id="openSocial">🌐<span>Social</span></button>
     <button class="navbtn flex flex-col items-center gap-0.5 text-red-400" id="openSOS">🆘<span>SOS</span></button>
@@ -218,6 +231,13 @@ tailwind.config = {
 </div>
 <script>
 const $ = id => document.getElementById(id);
+function syncHeaderHeight(){
+  const header = $('siteHeader');
+  if(header) document.documentElement.style.setProperty('--site-header-height', `${Math.ceil(header.getBoundingClientRect().height)}px`);
+}
+syncHeaderHeight();
+window.addEventListener('resize', syncHeaderHeight, {passive:true});
+if('ResizeObserver' in window) new ResizeObserver(syncHeaderHeight).observe($('siteHeader'));
 const GRAD = {crime:'grad-crime',politics:'grad-politics',infrastructure:'grad-infrastructure',tech:'grad-tech',sports:'grad-sports',weather:'grad-weather',culture:'grad-culture',health:'grad-health',general:'grad-news'};
 const ICONS = {crime:'🚨',politics:'🗳️',infrastructure:'🏗️',tech:'💻',sports:'🏆',weather:'🌧️',culture:'🎭',health:'🏥',general:'📰'};
 let articles = [];
@@ -237,6 +257,18 @@ function setStatus(message, error=false){
 }
 
 function favicon(src){ try { const u = new URL(src.includes('http')?src:'https://x'); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`; } catch(e){ return ''; } }
+
+function latestPublishedLabel(rows){
+  const newest = rows.reduce((max, article)=>{
+    const timestamp = Number(article.published_ts) || (Date.parse(article.published||'')/1000) || 0;
+    return Math.max(max, timestamp);
+  }, 0);
+  if(!newest) return 'publication time unavailable';
+  const date = new Date(newest*1000);
+  const ageHours = Math.max(0, (Date.now()-date.getTime())/3600000);
+  const age = ageHours < 1 ? 'under 1h ago' : ageHours < 24 ? `${Math.floor(ageHours)}h ago` : `${Math.floor(ageHours/24)}d ago`;
+  return `${date.toLocaleString([], {day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})} (${age})`;
+}
 
 async function loadStats(cacheBust=false){
   const s = await api('/api/stats'+(cacheBust?`?_ts=${Date.now()}`:''));
@@ -267,7 +299,7 @@ async function loadArticles(cacheBust=false){
   }
   articles = data;
   lastUpdated = new Date();
-  setStatus(`${data.length} ${data.length===1?'story':'stories'} · updated ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
+  setStatus(`${data.length} ${data.length===1?'story':'stories'} · latest published ${latestPublishedLabel(data)} · checked ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
   $('loader').classList.add('hidden');
   if(!data.length){ $('empty').classList.remove('hidden'); return; }
   $('empty').classList.add('hidden');
@@ -509,10 +541,10 @@ $('search').addEventListener('input', debounce(()=>loadArticles(),400));
 
 // refresh
 async function refresh(){
-  const button = $('refreshBtn'); button.textContent='…'; button.disabled=true; setStatus('Refreshing local stories…');
+  const button = $('refreshBtn'); button.textContent='…'; button.disabled=true; button.setAttribute('aria-busy','true'); setStatus('Checking local news sources…');
   try{ await api('/api/refresh',{method:'POST',cache:'no-store'}); await loadStats(true); await loadArticles(true); }
   catch(e){ setStatus('Could not refresh stories. Please try again.', true); toast('Refresh failed — check your connection'); }
-  finally { button.textContent='↻'; button.disabled=false; }
+  finally { button.textContent='↻'; button.disabled=false; button.removeAttribute('aria-busy'); }
 }
 $('refreshBtn').onclick = refresh;
 

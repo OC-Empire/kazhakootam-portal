@@ -1,4 +1,6 @@
 import feedparser, httpx, datetime, re, html, calendar
+from datetime import timedelta, timezone
+from urllib.parse import quote_plus
 
 QUERIES = [
     "Kazhakootam",
@@ -11,6 +13,8 @@ QUERIES = [
     "Kazhakootam NH66",
     "Kazhakkuttom election",
     "Kazhakootam hostel IT",
+    "Trivandrum",
+    "Thiruvananthapuram",
 ]
 
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
@@ -42,7 +46,9 @@ def clean_html(s):
     return s[:400]
 
 def fetch_google_news(query):
-    url = GOOGLE_NEWS_RSS.format(q=query.replace(" ", "+"))
+    cutoff = datetime.datetime.now(timezone.utc).date() - timedelta(days=7)
+    search_query = f"{query} after:{cutoff.isoformat()}"
+    url = GOOGLE_NEWS_RSS.format(q=quote_plus(search_query))
     try:
         feed = feedparser.parse(url)
     except Exception:

@@ -62,10 +62,11 @@ _CLASSIFIEDS = [
     {"id":4,"title":"Tuition: Maths & Physics (Class 10-12)","type":"Service","price":"₹500/hr","contact":"9876543213","desc":"Experienced teacher, Kazhakootam area."},
     {"id":5,"title":"Laptop repair service","type":"Service","price":"Call for quote","contact":"9876543214","desc":"All brands. Home visit available."},
 ]
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+import hmac
 
 app = FastAPI(title="Kazhakootam News Aggregator")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -99,12 +100,23 @@ async def do_refresh():
         print("refresh error:", e)
         return 0
 
-@app.post("/api/refresh")
-async def refresh():
+async def run_refresh():
     # ensure data exists first
     ensure_data()
     n = await do_refresh()
-    return {"fetched": n, "total": db.stats()["total"]}
+    return JSONResponse({"fetched": n, "total": db.stats()["total"]}, headers={"Cache-Control": "no-store"})
+
+@app.post("/api/refresh")
+async def refresh():
+    return await run_refresh()
+
+@app.get("/api/refresh")
+async def scheduled_refresh(request: Request):
+    # Vercel Cron calls GET and supplies this bearer token when CRON_SECRET is configured.
+    secret = os.environ.get("CRON_SECRET")
+    if secret and not hmac.compare_digest(request.headers.get("authorization", ""), f"Bearer {secret}"):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401, headers={"Cache-Control": "no-store"})
+    return await run_refresh()
 
 @app.get("/api/articles")
 def articles(limit: int = 200, source: str = None, category: str = None, q: str = None):
