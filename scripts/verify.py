@@ -29,6 +29,8 @@ checks = {
     "centered desktop feed": r"max-w-3xl mx-auto w-full px-4 py-6",
     "published-story freshness": r"latest published \$\{latestPublishedLabel\(data\)\}",
     "44px navigation targets": r"\.navbtn\{min-width:44px;min-height:44px",
+    "article read button is touch-sized": r'<button class="glass[^\"]*min-h-\[44px\][^\"]*" data-read=',
+    "article share button stays a 44px icon target": r'<button type="button" class="share-btn[^\"]*w-11 h-11[^\"]*" data-share-pop=',
 }
 missing = [name for name, pattern in checks.items() if not re.search(pattern, text)]
 if missing:

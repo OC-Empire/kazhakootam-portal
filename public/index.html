@@ -413,9 +413,9 @@ function renderFeed(){
       </div>
       <div class="font-semibold text-lg md:text-xl mb-3 hover:text-indigo-300 group-hover:text-white leading-snug">${escapeHtml(a.title)}</div>
       <p class="text-sm text-white/60 line-clamp-3 mb-5">${escapeHtml(a.summary||'')}</p>
-      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-        <button class="glass rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/10 flex-1 sm:flex-none" data-read="${i}">📖 Read here</button>
-        <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
+      <div class="flex items-center gap-3">
+        <button class="glass rounded-full px-4 py-3 text-sm font-semibold hover:bg-white/10 flex-1 min-h-[44px]" data-read="${i}">📖 Read here</button>
+        <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-11 h-11 flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
       </div>`;
     g.appendChild(card);
   });
