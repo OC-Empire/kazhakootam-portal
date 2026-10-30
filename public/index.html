@@ -78,6 +78,9 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
+  .share-action{width:56px;min-height:68px;padding:4px 2px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;touch-action:manipulation}
+  .share-action .share-btn{width:44px;height:44px;flex:none}
+  .share-action-label{font-size:11px;line-height:1.1;color:rgba(255,255,255,.88);text-shadow:0 1px 5px #000}
   .share-pop{position:fixed;z-index:100;width:220px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 24px);overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(6px) scale(.97);transform-origin:top left;transition:opacity .16s ease,transform .16s ease;left:8px;top:8px}
   .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
@@ -407,10 +410,10 @@ function renderReels(){
             <div class="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">↗</div>
             <span class="text-[10px] text-white/60">Open</span>
           </button>
-          <div class="relative w-11 h-11" style="cursor:pointer" role="button" aria-label="Share options" tabindex="0">
-            <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-full h-full flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
-            <span class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] text-white/60 whitespace-nowrap">Share</span>
-          </div>
+          <button type="button" class="share-action action-btn rounded-xl" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}" aria-haspopup="menu" aria-expanded="false">
+            <span class="share-btn rounded-full flex items-center justify-center text-xl" aria-hidden="true">📤</span>
+            <span class="share-action-label">Share</span>
+          </button>
         </div>
       </div>
       <div class="absolute bottom-16 left-5 text-[10px] text-white/30">${i+1} / ${articles.length}</div>
@@ -441,7 +444,10 @@ function renderFeed(){
       <div class="flex items-center gap-3">
         <button class="glass rounded-full px-4 py-3 text-sm font-semibold hover:bg-white/10 flex-1 min-h-[44px]" data-read="${i}">📖 Read here</button>
         <button type="button" class="glass rounded-full px-3 py-3 min-h-[44px]" data-save="${i}" aria-pressed="${savedLinks.has(a.link)}" aria-label="${savedLinks.has(a.link)?'Remove saved story':'Save story'}">🔖</button>
-        <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-11 h-11 flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
+        <button type="button" class="share-action action-btn rounded-xl flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}" aria-haspopup="menu" aria-expanded="false">
+          <span class="share-btn rounded-full flex items-center justify-center text-xl" aria-hidden="true">📤</span>
+          <span class="share-action-label">Share</span>
+        </button>
       </div>`;
     g.appendChild(card);
   });
@@ -450,7 +456,7 @@ function renderFeed(){
   document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    openSharePop(b);
+    handleShareAction(b);
   });
   renderSharePops();
 }
@@ -506,8 +512,22 @@ function bindCardActions(){
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
-    openSharePop(b);
+    handleShareAction(b);
   });
+}
+async function handleShareAction(b){
+  const article = articles[+b.dataset.sharePop];
+  if(!article) return;
+  const isMobile = matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+  if(isMobile && typeof navigator.share === 'function'){
+    try{
+      await navigator.share({title:article.title||'Kazhakootam News',text:article.title||'Kazhakootam News',url:article.link||location.href});
+      return;
+    }catch(e){
+      if(e?.name==='AbortError') return;
+    }
+  }
+  openSharePop(b);
 }
 function openSharePop(b){
   const i = +b.dataset.sharePop;
@@ -522,6 +542,7 @@ function openSharePop(b){
   pop.style.left = '8px'; pop.style.top = '8px'; pop.style.bottom = 'auto';
   pop.style.transform = 'none';
   pop.classList.add('open');
+  b.setAttribute('aria-expanded','true');
   const trigger = b.getBoundingClientRect();
   const menu = pop.getBoundingClientRect();
   const gap = 8, margin = 8;
@@ -535,7 +556,10 @@ window.addEventListener('click', e=>{
   if(e.target.closest('.share-pop') || e.target.closest('[data-share-pop]')) return;
   closeSharePops();
 });
-function closeSharePops(){ document.querySelectorAll('.share-pop').forEach(p=>p.classList.remove('open')); }
+function closeSharePops(){
+  document.querySelectorAll('.share-pop').forEach(p=>p.classList.remove('open'));
+  document.querySelectorAll('[data-share-pop][aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'));
+}
 async function copyShareLink(url, message='Link copied'){
   try{
     if(!navigator.clipboard) throw new Error('Clipboard unavailable');
