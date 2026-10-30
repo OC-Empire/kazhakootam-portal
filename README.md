@@ -99,7 +99,8 @@ process. Both files are git-ignored. Apply `migrations/001_articles.sql` to the
 Neon database before deployment; application startup only verifies the schema
 and does not require runtime DDL privileges. On Vercel, set `DATABASE_URL` to
 the Neon **pooled** connection string and `CRON_SECRET` to a high-entropy
-secret. Vercel Cron sends that secret as `Authorization: Bearer ...`; both GET
+secret (for example, `openssl rand -hex 32`). Vercel Cron sends that secret
+as `Authorization: Bearer ...`; both GET
 (scheduled) and POST (manual) refresh requests fail closed when auth is missing
 in Vercel and reject invalid tokens. The cron refreshes daily at 06:00 UTC.
 Local development without `DATABASE_URL` continues to use SQLite. The feed
