@@ -25,6 +25,7 @@ checks = {
     "measured header/status/navigation heights": r"layoutObserver\.observe\(\$\(id\)\)",
     "reels fits measured available viewport": r"#reelsView\{height:calc\(100dvh - var\(--site-header-height,135px\) - var\(--site-status-height,44px\) - var\(--bottom-nav-height,61px\)\)",
     "mobile weather chip does not crowd search": r"#weatherChip\{display:none!important\}",
+    "feed/reels visibility initialized before data load": r"syncViewVisibility\(\);\s*\$\('viewToggle'\)\.onclick",
     "centered desktop feed": r"max-w-3xl mx-auto w-full px-4 py-6",
     "published-story freshness": r"latest published \$\{latestPublishedLabel\(data\)\}",
     "44px navigation targets": r"\.navbtn\{min-width:44px;min-height:44px",

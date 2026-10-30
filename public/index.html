@@ -535,11 +535,15 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'
 
 // view toggle
 $('viewToggle').textContent = view==='reels'?'Reels':'Feed';
+function syncViewVisibility(){
+  $('reelsView').classList.toggle('hidden', view!=='reels');
+  $('gridView').classList.toggle('hidden', view!=='feed');
+}
+syncViewVisibility();
 $('viewToggle').onclick = ()=>{
   view = view==='reels'?'feed':'reels';
   $('viewToggle').textContent = view==='reels'?'Reels':'Feed';
-  $('reelsView').classList.toggle('hidden', view!=='reels');
-  $('gridView').classList.toggle('hidden', view!=='feed');
+  syncViewVisibility();
   render();
   if(view==='reels') loadThumbs();
 };
