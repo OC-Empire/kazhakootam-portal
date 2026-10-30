@@ -93,8 +93,7 @@ async def refresh_loop():
 async def do_refresh():
     try:
         arts = await asyncio.to_thread(scraper.fetch_all)
-        for a in arts:
-            db.upsert(a)
+        db.upsert_many(arts)
         return len(arts)
     except Exception as e:
         print("refresh error:", e)
@@ -106,16 +105,29 @@ async def run_refresh():
     n = await do_refresh()
     return JSONResponse({"fetched": n, "total": db.stats()["total"]}, headers={"Cache-Control": "no-store"})
 
+def authorize_refresh(request: Request):
+    secret = os.environ.get("CRON_SECRET")
+    if not secret:
+        if os.environ.get("VERCEL") == "1":
+            return JSONResponse({"detail": "Refresh authentication is not configured"}, status_code=503, headers={"Cache-Control": "no-store"})
+        return None
+    if not hmac.compare_digest(request.headers.get("authorization", ""), f"Bearer {secret}"):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401, headers={"Cache-Control": "no-store"})
+    return None
+
 @app.post("/api/refresh")
-async def refresh():
+async def refresh(request: Request):
+    denied = authorize_refresh(request)
+    if denied:
+        return denied
     return await run_refresh()
 
 @app.get("/api/refresh")
 async def scheduled_refresh(request: Request):
-    # Vercel Cron calls GET and supplies this bearer token when CRON_SECRET is configured.
-    secret = os.environ.get("CRON_SECRET")
-    if secret and not hmac.compare_digest(request.headers.get("authorization", ""), f"Bearer {secret}"):
-        return JSONResponse({"detail": "Unauthorized"}, status_code=401, headers={"Cache-Control": "no-store"})
+    # Vercel Cron supplies this bearer token when CRON_SECRET is configured.
+    denied = authorize_refresh(request)
+    if denied:
+        return denied
     return await run_refresh()
 
 @app.get("/api/articles")

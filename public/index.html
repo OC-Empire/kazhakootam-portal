@@ -47,8 +47,8 @@ tailwind.config = {
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
   .hide-scroll::-webkit-scrollbar{display:none}
   .hide-scroll{scrollbar-width:none}
-  .snap-y{overflow-y:auto;height:100dvh;-webkit-overflow-scrolling:touch}
-  .reel{scroll-snap-align:start;height:100%;min-height:100%;position:relative;overflow:hidden;touch-action:pan-y}
+  .snap-y{overflow-y:auto;height:100%;min-height:0;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .reel{scroll-snap-align:start;scroll-snap-stop:always;height:100%;min-height:100%;position:relative;overflow:hidden;touch-action:pan-y}
   .glow{position:absolute;border-radius:50%;filter:blur(72px);opacity:.28;pointer-events:none;z-index:0}
   .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none}
   /* category gradients */
@@ -78,8 +78,8 @@ tailwind.config = {
   .action-btn:active{transform:scale(.82)}
   .share-btn{background:linear-gradient(135deg,#6366f1,#ec4899);box-shadow:0 10px 30px -8px rgba(99,102,241,.45)}
   .share-btn:active{transform:scale(.86)}
-  .share-pop{position:fixed;z-index:100;width:220px;max-width:94vw;max-height:calc(100dvh - 150px);overflow-y:auto;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px) scale(.95);transition:opacity .22s ease,transform .22s ease;left:50%;margin-top:8px}
-  .share-pop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
+  .share-pop{position:fixed;z-index:100;width:220px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 24px);overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(6px) scale(.97);transform-origin:top left;transition:opacity .16s ease,transform .16s ease;left:8px;top:8px}
+  .share-pop.open{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
   .share-pop-item{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;transition:transform .15s,background .15s}
   .share-pop-item:active{transform:translateY(-2px);background:rgba(255,255,255,.12)}
   .toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);padding:10px 16px;border-radius:12px;font-size:13px;z-index:60;animation:fi .3s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -251,7 +251,23 @@ let articles = [];
 let view = 'feed';
 let activeCat = '';
 let activeSource = '';
+let activeSaved = false;
+let savedLinks = readSavedLinks();
 let lastUpdated = null;
+
+function readSavedLinks(){
+  try{ return new Set(JSON.parse(localStorage.getItem('kazhakootam:saved:v1')||'[]')); }catch(e){ return new Set(); }
+}
+function saveArticle(link){
+  if(!link) return;
+  const next = new Set(savedLinks);
+  if(next.has(link)) next.delete(link); else next.add(link);
+  try{ localStorage.setItem('kazhakootam:saved:v1', JSON.stringify([...next])); }
+  catch(e){ toast('Could not save on this device — browser storage is full or disabled'); return; }
+  savedLinks = next;
+  loadStats();
+  loadArticles();
+}
 
 async function api(path, options){
   const response = await fetch(path, options);
@@ -282,9 +298,12 @@ async function loadStats(cacheBust=false){
   const s = await api('/api/stats'+(cacheBust?`?_ts=${Date.now()}`:''));
   // category chips
   const chips = $('catChips');
-  chips.innerHTML = `<button class="chip ${activeCat===''?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
-    s.categories.map(c=>`<button class="chip ${activeCat===c.category?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="${c.category}">${ICONS[c.category]||'•'} ${c.category} (${c.n})</button>`).join('');
-  chips.querySelectorAll('.chip').forEach(b=> b.onclick = ()=>{ activeCat=b.dataset.cat; loadArticles(); loadStats(); });
+  chips.innerHTML = `<button class="chip ${activeCat===''&&!activeSaved?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
+    `<button class="chip ${activeSaved?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" id="savedChip" aria-pressed="${activeSaved}">🔖 Saved (${savedLinks.size})</button>` +
+    s.categories.map(c=>`<button class="chip ${activeCat===c.category&&!activeSaved?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="${c.category}">${ICONS[c.category]||'•'} ${c.category} (${c.n})</button>`).join('');
+  chips.querySelector('[data-cat=""]').onclick = ()=>{ activeCat=''; activeSaved=false; loadArticles(); loadStats(); };
+  chips.querySelector('#savedChip').onclick = ()=>{ activeSaved=!activeSaved; loadArticles(); loadStats(); };
+  chips.querySelectorAll('[data-cat]:not([data-cat=""])').forEach(b=> b.onclick = ()=>{ activeCat=b.dataset.cat; activeSaved=false; loadArticles(); loadStats(); });
   // source dropdown not needed; chips enough
 }
 
@@ -305,11 +324,16 @@ async function loadArticles(cacheBust=false){
     if(!articles.length) $('empty').classList.remove('hidden');
     throw e;
   }
-  articles = data;
+  articles = activeSaved ? data.filter(a=>savedLinks.has(a.link)) : data;
   lastUpdated = new Date();
-  setStatus(`${data.length} ${data.length===1?'story':'stories'} · latest published ${latestPublishedLabel(data)} · checked ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
+  setStatus(`${articles.length} ${articles.length===1?'story':'stories'}${activeSaved?' saved':''} · latest published ${latestPublishedLabel(articles)} · checked ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
   $('loader').classList.add('hidden');
-  if(!data.length){ $('empty').classList.remove('hidden'); return; }
+  if(!articles.length){
+    $('reelsView').innerHTML=''; $('gridView').innerHTML=''; closeSharePops();
+    $('empty').classList.remove('hidden');
+    $('empty').textContent=activeSaved?'No saved stories on this device yet. Tap 🔖 on a story to keep it here.':'No stories match this filter. Try another search.';
+    return;
+  }
   $('empty').classList.add('hidden');
   render();
   loadThumbs();
@@ -374,6 +398,7 @@ function renderReels(){
           <p class="text-sm text-white/75 line-clamp-4 mb-4 max-w-xl">${escapeHtml(a.summary||'')}</p>
           <div class="flex gap-2 flex-wrap">
             <button class="glass rounded-full px-4 py-2 text-xs font-semibold hover:bg-white/10" data-read="${i}">📖 Read here</button>
+            <button class="glass rounded-full px-3 py-2 text-xs font-semibold hover:bg-white/10" data-save="${i}" aria-pressed="${savedLinks.has(a.link)}" aria-label="${savedLinks.has(a.link)?'Remove saved story':'Save story'}">${savedLinks.has(a.link)?'🔖 Saved':'🔖 Save'}</button>
           </div>
         </div>
         <!-- right action rail -->
@@ -415,11 +440,13 @@ function renderFeed(){
       <p class="text-sm text-white/60 line-clamp-3 mb-5">${escapeHtml(a.summary||'')}</p>
       <div class="flex items-center gap-3">
         <button class="glass rounded-full px-4 py-3 text-sm font-semibold hover:bg-white/10 flex-1 min-h-[44px]" data-read="${i}">📖 Read here</button>
+        <button type="button" class="glass rounded-full px-3 py-3 min-h-[44px]" data-save="${i}" aria-pressed="${savedLinks.has(a.link)}" aria-label="${savedLinks.has(a.link)?'Remove saved story':'Save story'}">🔖</button>
         <button type="button" class="share-btn rounded-full flex items-center justify-center text-xl w-11 h-11 flex-shrink-0" data-share-pop="${i}" aria-label="Share article: ${escapeHtml(a.title||'news article')}">📤</button>
       </div>`;
     g.appendChild(card);
   });
   document.querySelectorAll('#gridView [data-read]').forEach(b=> b.onclick = (e)=>{ e.stopPropagation(); openReader(articles[b.dataset.read]); });
+  document.querySelectorAll('#gridView [data-save]').forEach(b=> b.onclick = e=>{ e.stopPropagation(); saveArticle(articles[b.dataset.save].link); });
   document.querySelectorAll('#gridView [data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
@@ -475,6 +502,7 @@ function bindCardActions(){
     e.stopPropagation();
     openReader(articles[b.dataset.read]);
   });
+  document.querySelectorAll('[data-save]').forEach(b=> b.onclick = e=>{ e.stopPropagation(); saveArticle(articles[b.dataset.save].link); });
   document.querySelectorAll('[data-share-pop]').forEach(b=> b.onclick = (e)=>{
     e.stopPropagation();
     e.preventDefault();
@@ -486,21 +514,22 @@ function openSharePop(b){
   const pop = document.getElementById(`sharePop${i}`);
   if(!pop) return;
   const article = articles[i];
-  if(navigator.share && article){
-    navigator.share({title:article.title||'Kazhakootam news', text:article.summary||article.title||'', url:article.link||location.href})
-      .then(()=>closeSharePops()).catch(()=>{});
-    return;
-  }
   const alreadyOpen = pop.classList.contains('open');
   closeSharePops();
   if(alreadyOpen) return;
-  // Position popup at bottom-center of screen (always visible)
-  pop.style.left = '50%';
-  pop.style.bottom = '120px'; // above bottom nav
-  pop.style.top = 'auto';
-  pop.style.transform = 'translateX(-50%) scale(.92)';
+  // Anchor the menu to its trigger, clamped to the visible viewport.
+  pop.style.visibility = 'hidden';
+  pop.style.left = '8px'; pop.style.top = '8px'; pop.style.bottom = 'auto';
+  pop.style.transform = 'none';
   pop.classList.add('open');
-  requestAnimationFrame(()=>{ pop.style.transform = 'translateX(-50%) scale(1)'; });
+  const trigger = b.getBoundingClientRect();
+  const menu = pop.getBoundingClientRect();
+  const gap = 8, margin = 8;
+  const left = Math.max(margin, Math.min(trigger.right - menu.width, innerWidth - menu.width - margin));
+  const below = trigger.bottom + gap;
+  const top = below + menu.height <= innerHeight - margin ? below : Math.max(margin, trigger.top - menu.height - gap);
+  pop.style.left = `${left}px`; pop.style.top = `${top}px`;
+  pop.style.visibility = '';
 }
 window.addEventListener('click', e=>{
   if(e.target.closest('.share-pop') || e.target.closest('[data-share-pop]')) return;
@@ -518,7 +547,7 @@ async function copyShareLink(url, message='Link copied'){
 const SHARE_APPS = [
   ["WhatsApp", "https://wa.me/?text={TEXT}%20{URL}", "#25D366", "💬"],
   ["X / Twitter", "https://twitter.com/intent/tweet?text={TEXT}&url={URL}", "#000000", "𝕏"],
-  ["Facebook", "https://www.google.com/search?q=site%3Afacebook.com+{TEXT}", "#1877F2", "📘"],
+  ["Facebook", "https://www.facebook.com/sharer/sharer.php?u={URL}", "#1877F2", "📘"],
   ["Telegram", "https://t.me/share/url?url={URL}&text={TEXT}", "#26A5E4", "✈️"],
   ["LinkedIn", "https://www.linkedin.com/sharing/share-offsite/?url={URL}", "#0A66C2", "💼"],
   ["Reddit", "https://reddit.com/submit?url={URL}&title={TEXT}", "#FF4500", "👽"],
@@ -554,7 +583,7 @@ $('search').addEventListener('input', debounce(()=>loadArticles(),400));
 // refresh
 async function refresh(){
   const button = $('refreshBtn'); button.textContent='…'; button.disabled=true; button.setAttribute('aria-busy','true'); setStatus('Checking local news sources…');
-  try{ await api('/api/refresh',{method:'POST',cache:'no-store'}); await loadStats(true); await loadArticles(true); }
+  try{ await loadStats(true); await loadArticles(true); setStatus('Showing the latest available stories. New stories arrive on the scheduled daily refresh.'); }
   catch(e){ setStatus('Could not refresh stories. Please try again.', true); toast('Refresh failed — check your connection'); }
   finally { button.textContent='↻'; button.disabled=false; button.removeAttribute('aria-busy'); }
 }
@@ -640,21 +669,6 @@ window.addEventListener('keydown', e=>{
   if(e.key==='ArrowDown'||e.key==='j'){ c.scrollBy({top:window.innerHeight,behavior:'smooth'}); }
   if(e.key==='ArrowUp'||e.key==='k'){ c.scrollBy({top:-window.innerHeight,behavior:'smooth'}); }
 });
-
-// touch swipe nav for mobile reels (ignore taps on buttons/links/popup)
-let touchStartY=0, touchStartX=0;
-$('reelsView').addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; touchStartX=e.touches[0].clientX; },{passive:true});
-$('reelsView').addEventListener('touchend', e=>{
-  if(view!=='reels') return;
-  const target = e.target;
-  if(target.closest('button') || target.closest('a') || target.closest('.share-pop')) return;
-  const dy=e.changedTouches[0].clientY-touchStartY;
-  const dx=Math.abs(e.changedTouches[0].clientX-touchStartX);
-  if(Math.abs(dy)>80 && dx<Math.abs(dy)){
-    const c=$('reelsView');
-    c.scrollBy({top:dy>0?window.innerHeight:-window.innerHeight,behavior:'smooth'});
-  }
-},{passive:true});
 
 function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} }
 

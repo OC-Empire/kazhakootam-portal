@@ -1,10 +1,29 @@
 import sqlite3, os, datetime, json
+from dotenv import load_dotenv
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE, "data", "news.db")
+# Respect process-injected variables first; among dotenv files, .env.local is
+# authoritative over the shared .env file (for example after `neon env pull`).
+load_dotenv(os.path.join(BASE, ".env.local"), override=False)
+load_dotenv(os.path.join(BASE, ".env"), override=False)
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 _MEMORY = []          # fallback store for read-only/serverless envs
 _USE_MEMORY = False
+_PG_INITIALIZED = False
+
+def _postgres():
+    if not DATABASE_URL and os.environ.get("VERCEL") == "1":
+        raise RuntimeError("DATABASE_URL is required on Vercel; refusing instance-local memory storage")
+    return bool(DATABASE_URL)
+
+def _pg_connect():
+    # Vercel uses short-lived Python functions; DATABASE_URL should be Neon's
+    # pooled endpoint so independent invocations share durable storage safely.
+    import psycopg
+    from psycopg.rows import dict_row
+    return psycopg.connect(DATABASE_URL, connect_timeout=8, row_factory=dict_row)
 
 def _sqlite_ok():
     global _USE_MEMORY
@@ -28,6 +47,16 @@ def _ensure_column(c, col, decl):
             pass
 
 def init():
+    global _PG_INITIALIZED
+    if _postgres():
+        if _PG_INITIALIZED:
+            return
+        # Production schema is provisioned through versioned SQL migrations.
+        # Fail clearly if the migration was not applied; never run DDL at startup.
+        with _pg_connect() as c:
+            c.execute("SELECT id, title, link, source, published, published_ts, summary, category, image, fetched_at FROM articles LIMIT 0")
+        _PG_INITIALIZED = True
+        return
     if not _sqlite_ok():
         return
     c = sqlite3.connect(DB_PATH)
@@ -57,21 +86,67 @@ def _mem_upsert(art):
     rec["fetched_at"] = datetime.datetime.utcnow().isoformat()
     _MEMORY.append(rec)
 
-def upsert(art):
+def upsert_many(articles):
     global _USE_MEMORY
+    articles = list(articles)
+    if not articles:
+        return 0
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    records = [
+        (art["title"], art["link"], art.get("source"), art.get("published"),
+         art.get("published_ts", 0), art.get("summary"), art.get("category", "general"),
+         art.get("image"), now)
+        for art in articles
+    ]
     if _USE_MEMORY:
-        _mem_upsert(art); return
+        for art in articles:
+            for old in _MEMORY:
+                if old.get("link") == art["link"]:
+                    old.update({k: v for k, v in art.items() if v not in (None, "")})
+                    old["fetched_at"] = now
+                    break
+            else:
+                _mem_upsert(art)
+        return len(articles)
+    if _postgres():
+        with _pg_connect() as c:
+            c.cursor().executemany("""INSERT INTO articles
+                (title,link,source,published,published_ts,summary,category,image,fetched_at)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (link) DO UPDATE SET
+                    title = COALESCE(NULLIF(EXCLUDED.title, ''), articles.title),
+                    source = COALESCE(NULLIF(EXCLUDED.source, ''), articles.source),
+                    published = CASE WHEN EXCLUDED.published_ts >= COALESCE(articles.published_ts, 0) THEN COALESCE(NULLIF(EXCLUDED.published, ''), articles.published) ELSE articles.published END,
+                    published_ts = GREATEST(COALESCE(articles.published_ts, 0), COALESCE(EXCLUDED.published_ts, 0)),
+                    summary = COALESCE(NULLIF(EXCLUDED.summary, ''), articles.summary),
+                    category = COALESCE(NULLIF(EXCLUDED.category, ''), articles.category),
+                    image = COALESCE(NULLIF(EXCLUDED.image, ''), articles.image),
+                    fetched_at = EXCLUDED.fetched_at""", records)
+        return len(articles)
     try:
         c = sqlite3.connect(DB_PATH)
-        c.execute("""INSERT OR IGNORE INTO articles (title,link,source,published,published_ts,summary,category,image,fetched_at)
-                    VALUES (?,?,?,?,?,?,?,?,?)""",
-                  (art["title"], art["link"], art.get("source"), art.get("published"),
-                   art.get("published_ts",0), art.get("summary"), art.get("category","general"),
-                   art.get("image"), datetime.datetime.utcnow().isoformat()))
+        c.executemany("""INSERT INTO articles
+            (title,link,source,published,published_ts,summary,category,image,fetched_at)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(link) DO UPDATE SET
+                title=COALESCE(NULLIF(excluded.title,''), articles.title),
+                source=COALESCE(NULLIF(excluded.source,''), articles.source),
+                published=CASE WHEN excluded.published_ts >= COALESCE(articles.published_ts,0) THEN COALESCE(NULLIF(excluded.published,''),articles.published) ELSE articles.published END,
+                published_ts=MAX(COALESCE(articles.published_ts,0),COALESCE(excluded.published_ts,0)),
+                summary=COALESCE(NULLIF(excluded.summary,''),articles.summary),
+                category=COALESCE(NULLIF(excluded.category,''),articles.category),
+                image=COALESCE(NULLIF(excluded.image,''),articles.image),
+                fetched_at=excluded.fetched_at""", records)
         c.commit(); c.close()
+        return len(articles)
     except Exception:
         _USE_MEMORY = True
-        _mem_upsert(art)
+        for art in articles:
+            _mem_upsert(art)
+        return len(articles)
+
+def upsert(art):
+    return upsert_many([art])
 
 def set_image(link, url):
     global _USE_MEMORY
@@ -80,6 +155,10 @@ def set_image(link, url):
             if a.get("link") == link:
                 a["image"] = url
                 return
+        return
+    if _postgres():
+        with _pg_connect() as c:
+            c.execute("UPDATE articles SET image=%s WHERE link=%s", (url, link))
         return
     try:
         c = sqlite3.connect(DB_PATH)
@@ -92,6 +171,17 @@ def list_articles(limit=200, source=None, category=None, q=None):
     global _USE_MEMORY
     if _USE_MEMORY:
         rows = list(_MEMORY)
+    elif _postgres():
+        sql = "SELECT * FROM articles"
+        params = []; where = []
+        if source: where.append("source = %s"); params.append(source)
+        if category: where.append("category = %s"); params.append(category)
+        if q: where.append("(title ILIKE %s OR summary ILIKE %s)"); params += [f"%{q}%", f"%{q}%"]
+        if where: sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY COALESCE(published_ts,0) DESC, id DESC LIMIT %s"
+        params.append(limit)
+        with _pg_connect() as c:
+            rows = c.execute(sql, params).fetchall()
     else:
         try:
             c = sqlite3.connect(DB_PATH)
@@ -131,6 +221,12 @@ def stats():
         return {"total": total,
                 "sources": [{"source": k, "n": v} for k, v in sources.most_common()],
                 "categories": [{"category": k, "n": v} for k, v in cats.most_common()]}
+    if _postgres():
+        with _pg_connect() as c:
+            total = c.execute("SELECT COUNT(*) AS total FROM articles").fetchone()["total"]
+            sources = c.execute("SELECT source, COUNT(*) AS n FROM articles GROUP BY source ORDER BY n DESC").fetchall()
+            cats = c.execute("SELECT category, COUNT(*) AS n FROM articles GROUP BY category ORDER BY n DESC").fetchall()
+        return {"total": total, "sources": sources, "categories": cats}
     try:
         c = sqlite3.connect(DB_PATH)
         c.row_factory = sqlite3.Row

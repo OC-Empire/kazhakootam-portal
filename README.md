@@ -93,12 +93,16 @@ vercel        # follow prompts
 Set env vars in the Vercel dashboard if you want live social feeds:
 `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `TWITTER_BEARER_TOKEN`.
 
-Note: on Vercel the filesystem is read-only, so SQLite falls back to a
-per-serverless-instance in-memory cache that is repopulated on cold starts and
-refresh requests. `DATABASE_URL` is not currently consumed by the code; durable
-cross-instance storage requires a database adapter and provisioned database.
-The Vercel cron calls `/api/refresh` with GET; when `CRON_SECRET` is configured,
-the endpoint validates Vercel's `Authorization: Bearer …` header.
+Neon `env pull` stores local values in `.env.local` (or an existing `.env`);
+the app loads either file without overriding variables already set by the
+process. Both files are git-ignored. Apply `migrations/001_articles.sql` to the
+Neon database before deployment; application startup only verifies the schema
+and does not require runtime DDL privileges. On Vercel, set `DATABASE_URL` to
+the Neon **pooled** connection string and `CRON_SECRET` to a high-entropy
+secret. Vercel Cron sends that secret as `Authorization: Bearer ...`; both GET
+(scheduled) and POST (manual) refresh requests fail closed when auth is missing
+in Vercel and reject invalid tokens. The cron refreshes daily at 06:00 UTC.
+Local development without `DATABASE_URL` continues to use SQLite.
 
 ### Other hosts
 - Render / Railway / Fly.io: use the provided `Dockerfile` or run uvicorn with `$PORT`.

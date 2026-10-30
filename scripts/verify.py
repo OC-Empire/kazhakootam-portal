@@ -27,7 +27,7 @@ checks = {
     "mobile weather chip does not crowd search": r"#weatherChip\{display:none!important\}",
     "feed/reels visibility initialized before data load": r"syncViewVisibility\(\);\s*\$\('viewToggle'\)\.onclick",
     "centered desktop feed": r"max-w-3xl mx-auto w-full px-4 py-6",
-    "published-story freshness": r"latest published \$\{latestPublishedLabel\(data\)\}",
+    "published-story freshness": r"latest published \$\{latestPublishedLabel\(articles\)\}",
     "44px navigation targets": r"\.navbtn\{min-width:44px;min-height:44px",
     "article read button is touch-sized": r'<button class="glass[^\"]*min-h-\[44px\][^\"]*" data-read=',
     "article share button stays a 44px icon target": r'<button type="button" class="share-btn[^\"]*w-11 h-11[^\"]*" data-share-pop=',
@@ -38,7 +38,9 @@ if missing:
     sys.exit(1)
 api_checks = {
     "Vercel cron GET route": r'@app\.get\("/api/refresh"\)',
-    "optional cron bearer validation": r'hmac\.compare_digest\(request\.headers\.get\("authorization"',
+    "refresh endpoints require bearer validation": r'def authorize_refresh\(request: Request\)',
+    "production refresh auth fails closed": r"Refresh authentication is not configured",
+    "refresh writes articles in one batch": r"db\.upsert_many\(arts\)",
 }
 missing_api = [name for name, pattern in api_checks.items() if not re.search(pattern, api)]
 if missing_api:
@@ -70,8 +72,15 @@ for city in ('"Trivandrum"', '"Thiruvananthapuram"'):
 if "after:{cutoff.isoformat()}" not in scraper or "quote_plus(search_query)" not in scraper:
     print("RSS requests must use URL-encoded rolling seven-day date filters")
     sys.exit(1)
-if "For persistent storage, set `DATABASE_URL`" in readme:
-    print("README claims DATABASE_URL support that the code does not implement")
+database = (page.parents[1] / "db.py").read_text(encoding="utf-8")
+database_checks = {
+    "Neon Postgres adapter": r"psycopg\.connect\(DATABASE_URL",
+    "Vercel requires durable database configuration": r"DATABASE_URL is required on Vercel",
+    "local SQLite fallback": r"sqlite3\.connect\(DB_PATH\)",
+}
+missing_database = [name for name, pattern in database_checks.items() if not re.search(pattern, database)]
+if missing_database:
+    print("Missing database checks: " + ", ".join(missing_database))
     sys.exit(1)
 if text.count("<script") != text.count("</script>"):
     print("Unbalanced script tags")
