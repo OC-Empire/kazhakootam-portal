@@ -102,7 +102,9 @@ the Neon **pooled** connection string and `CRON_SECRET` to a high-entropy
 secret. Vercel Cron sends that secret as `Authorization: Bearer ...`; both GET
 (scheduled) and POST (manual) refresh requests fail closed when auth is missing
 in Vercel and reject invalid tokens. The cron refreshes daily at 06:00 UTC.
-Local development without `DATABASE_URL` continues to use SQLite.
+Local development without `DATABASE_URL` continues to use SQLite. The feed
+refresh control reloads already-ingested stories; only the authenticated cron
+endpoint fetches publisher feeds.
 
 ### Other hosts
 - Render / Railway / Fly.io: use the provided `Dockerfile` or run uvicorn with `$PORT`.
