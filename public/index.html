@@ -83,8 +83,6 @@ tailwind.config = {
 <body>
 <!-- Top bar -->
 
-<header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 overflow-visible" role="banner">
-
 <header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl bg-black/45 border-b border-white/6 relative overflow-hidden" role="banner">
 
   <div class="glow top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 animate-blob"></div>
@@ -112,9 +110,6 @@ tailwind.config = {
   @keyframes blob{0%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-50px) scale(1.1)}66%{transform:translate(-20px,20px) scale(0.9)}100%{transform:translate(0,0) scale(1)}}
 </style>
 
-
-<main id="app" class="pt-[135px] pb-14">
-  <div id="reelsView" class="snap-y hide-scroll"></div>
 
 <main id="app" class="pt-[135px] pb-14">
   <div id="status" class="max-w-3xl mx-auto px-4 pt-3 text-xs text-white/45" role="status" aria-live="polite"></div>
@@ -243,8 +238,8 @@ function setStatus(message, error=false){
 
 function favicon(src){ try { const u = new URL(src.includes('http')?src:'https://x'); return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`; } catch(e){ return ''; } }
 
-async function loadStats(){
-  const s = await api('/api/stats');
+async function loadStats(cacheBust=false){
+  const s = await api('/api/stats'+(cacheBust?`?_ts=${Date.now()}`:''));
   // category chips
   const chips = $('catChips');
   chips.innerHTML = `<button class="chip ${activeCat===''?'active':''} shrink-0 border border-white/10 rounded-full px-3 py-1 text-xs" data-cat="">All</button>` +
@@ -253,14 +248,23 @@ async function loadStats(){
   // source dropdown not needed; chips enough
 }
 
-async function loadArticles(){
+async function loadArticles(cacheBust=false){
   $('loader').classList.remove('hidden'); $('empty').classList.add('hidden');
   const params = new URLSearchParams();
   if($('search').value) params.set('q',$('search').value);
   if(activeCat) params.set('category',activeCat);
   if(activeSource) params.set('source',activeSource);
   params.set('limit','300');
-  const data = await api('/api/articles?'+params);
+  if(cacheBust) params.set('_ts', Date.now().toString());
+  let data;
+  try {
+    data = await api('/api/articles?'+params, {cache:'no-store'});
+  } catch(e) {
+    $('loader').classList.add('hidden');
+    setStatus(lastUpdated ? `Could not load newer stories · last updated ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : 'Could not load stories. Please try again.', true);
+    if(!articles.length) $('empty').classList.remove('hidden');
+    throw e;
+  }
   articles = data;
   lastUpdated = new Date();
   setStatus(`${data.length} ${data.length===1?'story':'stories'} · updated ${lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
@@ -506,7 +510,7 @@ $('search').addEventListener('input', debounce(()=>loadArticles(),400));
 // refresh
 async function refresh(){
   const button = $('refreshBtn'); button.textContent='…'; button.disabled=true; setStatus('Refreshing local stories…');
-  try{ await api('/api/refresh',{method:'POST'}); await loadStats(); await loadArticles(); }
+  try{ await api('/api/refresh',{method:'POST',cache:'no-store'}); await loadStats(true); await loadArticles(true); }
   catch(e){ setStatus('Could not refresh stories. Please try again.', true); toast('Refresh failed — check your connection'); }
   finally { button.textContent='↻'; button.disabled=false; }
 }

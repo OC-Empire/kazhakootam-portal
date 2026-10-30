@@ -110,12 +110,14 @@ async def refresh():
 def articles(limit: int = 200, source: str = None, category: str = None, q: str = None):
     ensure_data()
     resp = JSONResponse(db.list_articles(limit=limit, source=source, category=category, q=q))
-    resp.headers["Cache-Control"] = "s-maxage=300, stale-while-revalidate=600"
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return resp
 
 @app.get("/api/stats")
 def stats():
-    return db.stats()
+    resp = JSONResponse(db.stats())
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return resp
 
 @app.get("/api/weather")
 async def weather():
